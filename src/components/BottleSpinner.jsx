@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import BottleSVG from './BottleSVG.jsx';
 
-const ARENA = 320;
-const RADIUS = 124;
+const ARENA = 260;
+const RADIUS = 100;
 
 export default function BottleSpinner({
   players,
@@ -67,8 +67,8 @@ export default function BottleSpinner({
       <BottleSVG
         ref={bottleRef}
         className="bottle-svg"
-        width={100}
-        height={220}
+        width={80}
+        height={176}
         style={{
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
         }}
