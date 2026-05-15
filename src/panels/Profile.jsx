@@ -15,12 +15,24 @@ export default function Profile({ id, currentUser }) {
   }, []);
 
   async function share() {
+    let appUrl = 'https://vk.com/app54583678';
     try {
-      await bridge.send('VKWebAppShowWallPostBox', {
-        message: `Я набрал ${score} очков в игре "Бутылочка"! Сыграно: ${stats.games}, выполнено заданий: ${stats.tasks}. Присоединяйся!`,
-      });
+      const params = new URLSearchParams(window.location.search);
+      const appId = params.get('vk_app_id');
+      if (appId) appUrl = `https://vk.com/app${appId}`;
+    } catch {}
+    const message = `Я набрал ${score} очков в игре «Бутылочка»! Сыграно: ${stats.games}, выполнено заданий: ${stats.tasks}. ${appUrl}`;
+
+    try {
+      await bridge.send('VKWebAppShowWallPostBox', { message });
+      return;
     } catch (e) {
-      alert('Поделиться можно только из приложения ВК');
+      // fall through
+    }
+    try {
+      await bridge.send('VKWebAppShare', { link: appUrl });
+    } catch (e) {
+      console.warn('Share unavailable:', e);
     }
   }
 
@@ -28,7 +40,7 @@ export default function Profile({ id, currentUser }) {
     try {
       await bridge.send('VKWebAppShowInviteBox');
     } catch (e) {
-      alert('Приглашать друзей можно только из приложения ВК');
+      console.warn('Invite unavailable:', e);
     }
   }
 

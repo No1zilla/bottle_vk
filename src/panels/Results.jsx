@@ -10,18 +10,29 @@ export default function Results({ id, players, onPlayAgain }) {
   const winnerScore = winner?.score || 0;
 
   async function share() {
-    let appUrl = '';
+    let appUrl = 'https://vk.com/app54583678';
     try {
       const params = new URLSearchParams(window.location.search);
       const appId = params.get('vk_app_id');
-      if (appId) appUrl = ` vk.com/app${appId}`;
+      if (appId) appUrl = `https://vk.com/app${appId}`;
     } catch {}
+    const message = `Я набрал ${winnerScore} очков в Бутылочке ВКонтакте! 🍾 ${appUrl}`;
+
+    // Try posting to wall first (requires moderation)
     try {
-      await bridge.send('VKWebAppShowWallPostBox', {
-        message: `Я набрал ${winnerScore} очков в Бутылочке ВКонтакте! 🍾${appUrl}`,
-      });
+      await bridge.send('VKWebAppShowWallPostBox', { message });
+      return;
     } catch (e) {
-      alert('Поделиться можно только из приложения ВК');
+      // ignore — fall through to native share
+    }
+
+    // Fallback: native share dialog (available for unmoderated apps)
+    try {
+      await bridge.send('VKWebAppShare', { link: appUrl });
+      return;
+    } catch (e) {
+      // both unavailable (e.g. running in plain browser) — do nothing
+      console.warn('Share unavailable:', e);
     }
   }
 
