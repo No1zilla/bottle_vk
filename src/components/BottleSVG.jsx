@@ -74,28 +74,8 @@ const BottleSVG = forwardRef(function BottleSVG(
         stroke="rgba(0,0,0,0.15)"
         strokeWidth="1"
       />
-      <text
-        x="50"
-        y="148"
-        textAnchor="middle"
-        fontSize="14"
-        fill="#0077FF"
-        fontWeight="800"
-        fontFamily="Inter, sans-serif"
-      >
-        VK
-      </text>
-      <text
-        x="50"
-        y="168"
-        textAnchor="middle"
-        fontSize="9"
-        fill="#7B61FF"
-        fontWeight="700"
-        fontFamily="Inter, sans-serif"
-      >
-        ИГРА
-      </text>
+      <circle cx="50" cy="150" r="12" fill="none" stroke="#0077FF" strokeWidth="2.5" />
+      <circle cx="50" cy="150" r="4" fill="#7B61FF" />
     </svg>
   );
 });
