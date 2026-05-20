@@ -6,7 +6,15 @@ const LEVEL_LABEL = {
   hard: 'Сложно',
 };
 
-export default function TaskCard({ task, fromPlayer, toPlayer, onComplete, onSkip }) {
+export default function TaskCard({
+  task,
+  fromPlayer,
+  toPlayer,
+  onComplete,
+  onSkip,
+  skipLabel = 'Пропустить',
+  skipDisabled = false,
+}) {
   if (!task) return null;
   const fromName = fromPlayer?.name || fromPlayer?.first_name || '?';
   const toName = toPlayer?.name || toPlayer?.first_name || '?';
@@ -20,11 +28,11 @@ export default function TaskCard({ task, fromPlayer, toPlayer, onComplete, onSki
       </span>
       <p className="task-text">{task.text}</p>
       <div className="btn-row">
-        <button className="btn-success" onClick={onComplete}>
+        <button className="btn-success" onClick={onComplete} disabled={skipDisabled}>
           Выполнено
         </button>
-        <button className="btn-ghost" onClick={onSkip}>
-          Пропустить
+        <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled}>
+          {skipLabel}
         </button>
       </div>
     </div>

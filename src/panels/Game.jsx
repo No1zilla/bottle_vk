@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Panel } from '@vkontakte/vkui';
 import BottleSpinner from '../components/BottleSpinner.jsx';
 import TaskCard from '../components/TaskCard.jsx';
 import { getRandomTask } from '../data/tasks.js';
 import { addScore, bumpStats } from '../hooks/useStorage.js';
+import { showBanner, hideBanner, showRewardedAd } from '../hooks/useAds.js';
 
 export default function Game({ id, players, setPlayers, onEndGame }) {
   const [spinnerIndex, setSpinnerIndex] = useState(0);
@@ -11,7 +12,15 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [task, setTask] = useState(null);
   const [phase, setPhase] = useState('ready'); // ready | spinning | task | between
+  const [adLoading, setAdLoading] = useState(false);
   const roundResolvedRef = useRef(false);
+
+  useEffect(() => {
+    showBanner();
+    return () => {
+      hideBanner();
+    };
+  }, []);
 
   function startSpin() {
     if (players.length < 2) return;
@@ -53,7 +62,13 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     } catch {}
   }
 
-  function handleSkip() {
+  async function handleSkip() {
+    if (roundResolvedRef.current || adLoading) return;
+    setAdLoading(true);
+    // Show rewarded ad before granting skip. If ads aren't available
+    // (running outside VK, slot not approved yet, etc.) — skip silently.
+    await showRewardedAd();
+    setAdLoading(false);
     if (roundResolvedRef.current) return;
     roundResolvedRef.current = true;
     setPhase('between');
@@ -115,6 +130,8 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           toPlayer={target}
           onComplete={handleComplete}
           onSkip={handleSkip}
+          skipLabel={adLoading ? 'Реклама…' : 'Пропустить 📺'}
+          skipDisabled={adLoading}
         />
       )}
 
@@ -123,6 +140,8 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           Завершить игру
         </button>
       </div>
+      {/* Spacer so the bottom VK banner ad doesn't overlap the last button */}
+      <div style={{ height: 72 }} />
     </Panel>
   );
 }
