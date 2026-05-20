@@ -1,5 +1,4 @@
 import React from 'react';
-import bridge from '@vkontakte/vk-bridge';
 import { Panel } from '@vkontakte/vkui';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -8,59 +7,6 @@ export default function Results({ id, players, onPlayAgain }) {
   const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
   const winner = sorted[0];
   const winnerScore = winner?.score || 0;
-
-  async function share() {
-    let appUrl = 'https://vk.com/app54583678';
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const appId = params.get('vk_app_id');
-      if (appId) appUrl = `https://vk.com/app${appId}`;
-    } catch {}
-
-    const winnerName = winner?.name || 'Победитель';
-    const title = `🍾 ${winnerName}`;
-    const sub = `${winnerScore} очков в Бутылочке`;
-
-    try {
-      await bridge.send('VKWebAppShowStoryBox', {
-        background_type: 'none',
-        stickers: [
-          {
-            sticker_type: 'renderable',
-            sticker: {
-              content_type: 'image',
-              // Inline SVG -> data URL, rendered as the story canvas
-              url:
-                'data:image/svg+xml;utf8,' +
-                encodeURIComponent(
-                  `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
-                    <defs>
-                      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#0077FF"/>
-                        <stop offset="100%" stop-color="#7B61FF"/>
-                      </linearGradient>
-                    </defs>
-                    <rect width="720" height="1280" fill="url(#bg)"/>
-                    <text x="360" y="540" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="800" fill="#fff">${title}</text>
-                    <text x="360" y="640" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="600" fill="#fff" opacity="0.9">${sub}</text>
-                    <text x="360" y="780" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="500" fill="#fff" opacity="0.85">Сыграй и ты!</text>
-                  </svg>`
-                ),
-              transform: { relation_width: 1, gravity: 'center' },
-              can_delete: false,
-            },
-          },
-        ],
-        attachment: {
-          text: 'open',
-          type: 'url',
-          url: appUrl,
-        },
-      });
-    } catch (e) {
-      console.warn('Share unavailable:', e);
-    }
-  }
 
   return (
     <Panel id={id}>
@@ -144,9 +90,6 @@ export default function Results({ id, players, onPlayAgain }) {
       >
         <button className="btn-gradient" onClick={onPlayAgain}>
           Играть снова
-        </button>
-        <button className="btn-ghost" onClick={share}>
-          Поделиться 🍾
         </button>
       </div>
     </Panel>
