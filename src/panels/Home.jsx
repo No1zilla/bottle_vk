@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { Panel } from '@vkontakte/vkui';
 import BottleSVG from '../components/BottleSVG.jsx';
 
+const NAME_MAX_LEN = 16;
+
 export default function Home({ id, players, setPlayers, currentUser, onStart }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
 
+  function onNameChange(e) {
+    setName(e.target.value.slice(0, NAME_MAX_LEN));
+  }
+
   function addPlayer() {
-    const trimmed = name.trim();
+    const trimmed = name.trim().slice(0, NAME_MAX_LEN);
     if (!trimmed) return;
     setPlayers([
       ...players,
@@ -28,11 +34,12 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
   function addMe() {
     if (!currentUser) return;
     if (players.some((p) => p.id === `vk_${currentUser.id}`)) return;
+    const myName = `${currentUser.first_name} (я)`.slice(0, NAME_MAX_LEN);
     setPlayers([
       ...players,
       {
         id: `vk_${currentUser.id}`,
-        name: `${currentUser.first_name} (я)`,
+        name: myName,
         photo_100: currentUser.photo_100,
         isMe: true,
         score: 0,
@@ -115,12 +122,18 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
       {modalOpen && (
         <div className="modal-overlay" onClick={() => setModalOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-label">Имя игрока</div>
+            <div className="modal-label">
+              Имя игрока
+              <span style={{ float: 'right', opacity: 0.6 }}>
+                {name.length}/{NAME_MAX_LEN}
+              </span>
+            </div>
             <input
               className="modal-input"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={onNameChange}
               placeholder="Например, Маша"
+              maxLength={NAME_MAX_LEN}
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') addPlayer();
