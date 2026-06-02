@@ -1,14 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import { useSessionState } from './useSessionState.js';
 
-const MOCK_FRIENDS = [
-  { id: 101, first_name: 'Мария', last_name: 'Иванова', photo_100: '', score: 240 },
-  { id: 102, first_name: 'Дмитрий', last_name: 'Соколов', photo_100: '', score: 180 },
-  { id: 103, first_name: 'Анна', last_name: 'Лебедева', photo_100: '', score: 320 },
-  { id: 104, first_name: 'Иван', last_name: 'Петров', photo_100: '', score: 90 },
-  { id: 105, first_name: 'Ольга', last_name: 'Морозова', photo_100: '', score: 410 },
-];
+function isInVK() {
+  try {
+    return /vk_app_id=/.test(window.location.search);
+  } catch {
+    return false;
+  }
+}
+
+// Dev-only mock list — used when the app is opened outside of a real VK client
+// (e.g. plain browser preview during development) so the leaderboard isn't empty.
+const MOCK_FRIENDS = isInVK()
+  ? []
+  : [
+      { id: 101, first_name: 'Мария', last_name: 'Иванова', photo_100: '', score: 0 },
+      { id: 102, first_name: 'Дмитрий', last_name: 'Соколов', photo_100: '', score: 0 },
+      { id: 103, first_name: 'Анна', last_name: 'Лебедева', photo_100: '', score: 0 },
+    ];
 
 export function useVKFriends() {
   const [friends, setFriends] = useSessionState('bottle_friends', MOCK_FRIENDS);
@@ -25,12 +35,13 @@ export function useVKFriends() {
         first_name: u.first_name,
         last_name: u.last_name,
         photo_100: u.photo_200 || u.photo_100 || '',
-        score: Math.floor(Math.random() * 500),
+        score: 0,
       }));
       setFriends(list);
     } catch (e) {
       setError(e);
-      setFriends(MOCK_FRIENDS);
+      // outside of VK — fall back to dev mocks
+      if (!isInVK()) setFriends(MOCK_FRIENDS);
     } finally {
       setLoading(false);
     }

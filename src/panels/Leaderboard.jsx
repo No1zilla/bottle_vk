@@ -6,7 +6,6 @@ import { getScore } from '../hooks/useStorage.js';
 const MEDAL = ['🥇', '🥈', '🥉'];
 
 export default function Leaderboard({ id, currentUser }) {
-  const [tab, setTab] = useState('friends');
   const { friends, load } = useVKFriends();
   const [myScore, setMyScore] = useState(0);
 
@@ -32,10 +31,7 @@ export default function Leaderboard({ id, currentUser }) {
   if (myEntry && !friendsList.some((f) => f.id === myEntry.id)) {
     friendsList.push(myEntry);
   }
-  friendsList.sort((a, b) => b.score - a.score);
-
-  const allList = myEntry ? [myEntry] : [];
-  const list = tab === 'friends' ? friendsList : allList;
+  friendsList.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   return (
     <Panel id={id}>
@@ -43,34 +39,20 @@ export default function Leaderboard({ id, currentUser }) {
         <h1 className="h-display">
           <span className="gradient-text">Рейтинг</span>
         </h1>
-      </div>
-
-      <div className="seg-tabs">
-        <button
-          className={`seg-tab${tab === 'friends' ? ' active' : ''}`}
-          onClick={() => setTab('friends')}
-        >
-          Друзья
-        </button>
-        <button
-          className={`seg-tab${tab === 'all' ? ' active' : ''}`}
-          onClick={() => setTab('all')}
-        >
-          Все игроки
-        </button>
-      </div>
-
-      {tab === 'friends' && (
-        <div style={{ padding: '0 1rem 0.5rem' }}>
-          <button className="btn-ghost" onClick={load}>
-            Загрузить друзей из ВК
-          </button>
+        <div className="text-secondary" style={{ marginTop: 6 }}>
+          Сравни свои очки с друзьями
         </div>
-      )}
+      </div>
 
-      {list.length === 0 && <div className="empty-state">Пока пусто</div>}
+      <div style={{ padding: '0 1rem 0.5rem' }}>
+        <button className="btn-ghost" onClick={load}>
+          Загрузить друзей из ВК
+        </button>
+      </div>
 
-      {list.map((p, i) => {
+      {friendsList.length === 0 && <div className="empty-state">Пока пусто</div>}
+
+      {friendsList.map((p, i) => {
         const photo = p.photo_100 || '';
         const initials = (p.first_name || '?')[0].toUpperCase();
         const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
@@ -90,7 +72,7 @@ export default function Leaderboard({ id, currentUser }) {
               {p.first_name} {p.last_name || ''}
               {p.isMe && <small>Это вы</small>}
             </div>
-            <div className="leader-score">{p.score}</div>
+            <div className="leader-score">{p.score || 0}</div>
           </div>
         );
       })}
