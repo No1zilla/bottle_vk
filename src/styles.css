@@ -683,3 +683,9 @@ body {
 
 .panel-head { padding: 1.5rem 1rem 0.5rem; }
 .panel-head .h-display { font-size: 1.75rem; }
+
+/* Lock background scroll while a modal is open */
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}

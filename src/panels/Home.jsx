@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Panel } from '@vkontakte/vkui';
 import BottleSVG from '../components/BottleSVG.jsx';
 
@@ -7,6 +7,13 @@ const NAME_MAX_LEN = 16;
 export default function Home({ id, players, setPlayers, currentUser, onStart }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.classList.add('modal-open');
+      return () => document.body.classList.remove('modal-open');
+    }
+  }, [modalOpen]);
 
   function onNameChange(e) {
     setName(e.target.value.slice(0, NAME_MAX_LEN));
