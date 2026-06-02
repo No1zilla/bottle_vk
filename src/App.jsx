@@ -19,6 +19,7 @@ import Game from './panels/Game.jsx';
 import Results from './panels/Results.jsx';
 import Leaderboard from './panels/Leaderboard.jsx';
 import Profile from './panels/Profile.jsx';
+import OfflineBanner from './components/OfflineBanner.jsx';
 import { useVKUser } from './hooks/useVKUser.js';
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
     <ConfigProvider appearance={appearance}>
       <SplitLayout>
         <SplitCol>
+          <OfflineBanner />
           <Epic
             activeStory={story}
             tabbar={

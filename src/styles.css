@@ -689,3 +689,17 @@ body.modal-open {
   overflow: hidden;
   touch-action: none;
 }
+
+/* Offline status banner */
+.offline-banner {
+  background: #ff9800;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.625rem 1rem;
+  text-align: center;
+  line-height: 1.3;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
