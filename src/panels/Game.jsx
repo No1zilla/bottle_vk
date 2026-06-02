@@ -4,7 +4,7 @@ import BottleSpinner from '../components/BottleSpinner.jsx';
 import TaskCard from '../components/TaskCard.jsx';
 import { getRandomTask } from '../data/tasks.js';
 import { addScore, bumpStats } from '../hooks/useStorage.js';
-import { showBanner, hideBanner, showRewardedAd } from '../hooks/useAds.js';
+import { showBanner, hideBanner, showRewardedAd, getAdCooldownMs } from '../hooks/useAds.js';
 import { useSessionState } from '../hooks/useSessionState.js';
 
 export default function Game({ id, players, setPlayers, onEndGame }) {
@@ -14,7 +14,17 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | between
   const [isSpinning, setIsSpinning] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
+  const [cooldownLeft, setCooldownLeft] = useState(() => getAdCooldownMs());
   const roundResolvedRef = useRef(false);
+
+  // Tick down the ad cooldown timer while it's active
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const tick = () => setCooldownLeft(getAdCooldownMs());
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [cooldownLeft > 0]);
 
   // If we were in the middle of a spin animation when the user left,
   // restore to the resulting task screen on mount.
@@ -74,12 +84,14 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   }
 
   async function handleSkip() {
-    if (roundResolvedRef.current || adLoading) return;
+    if (roundResolvedRef.current || adLoading || cooldownLeft > 0) return;
     setAdLoading(true);
     // Show rewarded ad before granting skip. If ads aren't available
     // (running outside VK, slot not approved yet, etc.) — skip silently.
     await showRewardedAd();
     setAdLoading(false);
+    // Refresh cooldown after a successful (or attempted) ad show
+    setCooldownLeft(getAdCooldownMs());
     if (roundResolvedRef.current) return;
     roundResolvedRef.current = true;
     setPhase('between');
@@ -147,8 +159,14 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           toPlayer={target}
           onComplete={handleComplete}
           onSkip={handleSkip}
-          skipLabel={adLoading ? 'Реклама…' : 'Пропустить 📺'}
-          skipDisabled={adLoading}
+          skipLabel={
+            cooldownLeft > 0
+              ? `Пропуск через ${Math.ceil(cooldownLeft / 1000)} с`
+              : adLoading
+                ? 'Реклама…'
+                : 'Пропустить 📺'
+          }
+          skipDisabled={adLoading || cooldownLeft > 0}
         />
       )}
 
