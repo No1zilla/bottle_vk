@@ -5,15 +5,26 @@ import TaskCard from '../components/TaskCard.jsx';
 import { getRandomTask } from '../data/tasks.js';
 import { addScore, bumpStats } from '../hooks/useStorage.js';
 import { showBanner, hideBanner, showRewardedAd } from '../hooks/useAds.js';
+import { useSessionState } from '../hooks/useSessionState.js';
 
 export default function Game({ id, players, setPlayers, onEndGame }) {
-  const [spinnerIndex, setSpinnerIndex] = useState(0);
-  const [targetIndex, setTargetIndex] = useState(null);
+  const [spinnerIndex, setSpinnerIndex] = useSessionState('bottle_game_spinnerIndex', 0);
+  const [targetIndex, setTargetIndex] = useSessionState('bottle_game_targetIndex', null);
+  const [task, setTask] = useSessionState('bottle_game_task', null);
+  const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | between
   const [isSpinning, setIsSpinning] = useState(false);
-  const [task, setTask] = useState(null);
-  const [phase, setPhase] = useState('ready'); // ready | spinning | task | between
   const [adLoading, setAdLoading] = useState(false);
   const roundResolvedRef = useRef(false);
+
+  // If we were in the middle of a spin animation when the user left,
+  // restore to the resulting task screen on mount.
+  useEffect(() => {
+    if (phase === 'spinning') {
+      setPhase('task');
+      if (!task) setTask(getRandomTask());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     showBanner();
@@ -78,6 +89,12 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
 
   function handleEndGame() {
     bumpStats({ games: 1 }).catch(() => {});
+    try {
+      sessionStorage.removeItem('bottle_game_spinnerIndex');
+      sessionStorage.removeItem('bottle_game_targetIndex');
+      sessionStorage.removeItem('bottle_game_task');
+      sessionStorage.removeItem('bottle_game_phase');
+    } catch {}
     if (typeof onEndGame === 'function') {
       onEndGame();
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
+import { useSessionState } from './useSessionState.js';
 
 const MOCK_FRIENDS = [
   { id: 101, first_name: 'Мария', last_name: 'Иванова', photo_100: '', score: 240 },
@@ -10,7 +11,7 @@ const MOCK_FRIENDS = [
 ];
 
 export function useVKFriends() {
-  const [friends, setFriends] = useState([]);
+  const [friends, setFriends] = useSessionState('bottle_friends', MOCK_FRIENDS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,10 +35,6 @@ export function useVKFriends() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    setFriends(MOCK_FRIENDS);
-  }, []);
 
   return { friends, loading, error, load };
 }

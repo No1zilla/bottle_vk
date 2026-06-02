@@ -47,8 +47,18 @@ export default function App() {
     };
   }, []);
 
+  function clearGameSession() {
+    try {
+      sessionStorage.removeItem('bottle_game_spinnerIndex');
+      sessionStorage.removeItem('bottle_game_targetIndex');
+      sessionStorage.removeItem('bottle_game_task');
+      sessionStorage.removeItem('bottle_game_phase');
+    } catch {}
+  }
+
   function goToGame() {
     setPlayers((ps) => ps.map((p) => ({ ...p, score: 0 })));
+    clearGameSession();
     setActivePanel('gameplay');
   }
 
@@ -59,6 +69,7 @@ export default function App() {
 
   function playAgain() {
     setPlayers((ps) => ps.map((p) => ({ ...p, score: 0 })));
+    clearGameSession();
     setActivePanel('home');
   }
 
