@@ -28,7 +28,7 @@ export default function TaskCard({
       </span>
       <p className="task-text">{task.text}</p>
       <div className="btn-row">
-        <button className="btn-success" onClick={onComplete} disabled={skipDisabled}>
+        <button className="btn-success" onClick={onComplete}>
           Выполнено
         </button>
         <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled}>
