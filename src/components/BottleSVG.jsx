@@ -11,7 +11,7 @@ const BottleSVG = forwardRef(function BottleSVG(
       style={style}
       width={width}
       height={height}
-      viewBox="0 0 100 220"
+      viewBox="0 -10 100 230"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -31,6 +31,9 @@ const BottleSVG = forwardRef(function BottleSVG(
           <stop offset="100%" stopColor="#e0e0e0" />
         </linearGradient>
       </defs>
+
+      {/* pointer arrow above the cap — makes it obvious which side the bottle points to */}
+      <polygon points="50,-6 42,6 58,6" fill="#FFEB3B" stroke="#F57F17" strokeWidth="1.5" strokeLinejoin="round" />
 
       {/* cap */}
       <rect x="40" y="2" width="20" height="14" rx="3" fill="url(#cap)" />

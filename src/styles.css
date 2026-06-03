@@ -690,6 +690,49 @@ body.modal-open {
   touch-action: none;
 }
 
+/* Mini scoreboard inside Game */
+.scoreboard-mini {
+  margin: 0.5rem 1rem 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 0.625rem 0.75rem;
+}
+.scoreboard-mini-title {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 0.25rem 0.4rem;
+}
+.scoreboard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #fff;
+}
+.scoreboard-row.current {
+  background: rgba(0, 119, 255, 0.15);
+  font-weight: 700;
+}
+.scoreboard-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+.scoreboard-score {
+  font-weight: 800;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* Offline status banner */
 .offline-banner {
   background: #ff9800;

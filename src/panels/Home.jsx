@@ -5,6 +5,17 @@ import BottleSVG from '../components/BottleSVG.jsx';
 const NAME_MAX_LEN = 16;
 const PLAYERS_MAX = 12;
 
+// Strip emoji / symbol unicode ranges to keep names rendering cleanly inside chips.
+const EMOJI_RE = /\p{Extended_Pictographic}|\p{Emoji_Presentation}|️|[‍]/gu;
+function stripEmoji(s) {
+  try {
+    return s.replace(EMOJI_RE, '');
+  } catch {
+    // Safari / older engines without /u + property escapes — fall back to a coarser strip.
+    return s.replace(/[☀-➿\u{1F000}-\u{1FFFF}]/gu, '');
+  }
+}
+
 export default function Home({ id, players, setPlayers, currentUser, onStart }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
@@ -38,7 +49,7 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
   }
 
   function onNameChange(e) {
-    const v = e.target.value.slice(0, NAME_MAX_LEN);
+    const v = stripEmoji(e.target.value).slice(0, NAME_MAX_LEN);
     setName(v);
     if (nameError) setNameError('');
   }
@@ -128,7 +139,7 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
 
       {players.length === 0 ? (
         <div className="empty-state">
-          Добавьте минимум 2 игроков, чтобы начать партию
+          Добавь минимум 2 игроков, чтобы начать партию
         </div>
       ) : (
         <div className="players-row">

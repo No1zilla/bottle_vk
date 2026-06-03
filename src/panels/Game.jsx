@@ -99,7 +99,15 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     setTargetIndex(null);
   }
 
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  function requestEndGame() {
+    setConfirmEndOpen(true);
+  }
+  function cancelEndGame() {
+    setConfirmEndOpen(false);
+  }
   function handleEndGame() {
+    setConfirmEndOpen(false);
     bumpStats({ games: 1 }).catch(() => {});
     try {
       sessionStorage.removeItem('bottle_game_spinnerIndex');
@@ -170,13 +178,60 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
         />
       )}
 
+      <div className="scoreboard-mini">
+        <div className="scoreboard-mini-title">Счёт игроков</div>
+        {players.map((p, i) => {
+          const isCurrent = i === spinnerIndex;
+          return (
+            <div
+              key={p.id}
+              className={`scoreboard-row${isCurrent ? ' current' : ''}`}
+            >
+              <span className="scoreboard-name">{p.name || p.first_name}</span>
+              <span className="scoreboard-score">{p.score || 0}</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div style={{ padding: '1rem' }}>
-        <button className="btn-ghost" onClick={handleEndGame}>
+        <button className="btn-ghost" onClick={requestEndGame}>
           Завершить игру
         </button>
       </div>
       {/* Spacer so the bottom VK banner ad doesn't overlap the last button */}
       <div style={{ height: 72 }} />
+
+      {confirmEndOpen && (
+        <div className="modal-overlay" onClick={cancelEndGame}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: 700,
+                marginBottom: '0.5rem',
+                color: '#fff',
+              }}
+            >
+              Завершить игру?
+            </div>
+            <div
+              className="text-secondary"
+              style={{ marginBottom: '1.25rem' }}
+            >
+              Прогресс текущей партии не сохранится. Появится итоговая таблица результатов.
+            </div>
+            <div className="btn-row">
+              <button className="btn-gradient" onClick={handleEndGame}>
+                Завершить
+              </button>
+              <button className="btn-ghost" onClick={cancelEndGame}>
+                Продолжить игру
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }
