@@ -12,16 +12,40 @@ export default function BottleSpinner({
   onSpinComplete,
 }) {
   const bottleRef = useRef(null);
-  const [rotation, setRotation] = useState(0);
+  // When the user returns from another tab, initialize rotation so the bottle
+  // is already pointing at the saved target (no animation, just the correct
+  // resting position).
+  const [rotation, setRotation] = useState(() => {
+    if (targetIndex == null || !players?.length) return 0;
+    return (360 / players.length) * targetIndex;
+  });
 
   useEffect(() => {
-    if (!isSpinning || targetIndex == null || players.length === 0) return;
+    if (targetIndex == null || !players?.length) return;
     const targetAngle = (360 / players.length) * targetIndex;
+    if (!isSpinning) {
+      // Snap to target without animation (e.g. when re-mounting on tab return).
+      const el = bottleRef.current;
+      if (el) {
+        const prev = el.style.transition;
+        el.style.transition = 'none';
+        const base = Math.floor(rotation / 360) * 360;
+        setRotation(base + targetAngle);
+        // force reflow before restoring transition
+        // eslint-disable-next-line no-unused-expressions
+        el.offsetWidth;
+        requestAnimationFrame(() => {
+          el.style.transition = prev;
+        });
+      }
+      return;
+    }
     const fullTurns = 720 + Math.floor(Math.random() * 720);
     const base = Math.floor(rotation / 360) * 360;
     const next = base + fullTurns + targetAngle;
     setRotation(next);
-  }, [isSpinning, targetIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSpinning, targetIndex, players.length]);
 
   useEffect(() => {
     const el = bottleRef.current;
