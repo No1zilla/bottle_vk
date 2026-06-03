@@ -45,10 +45,13 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
 
   function startSpin() {
     if (players.length < 2) return;
-    if (phase === 'between') {
-      setSpinnerIndex((i) => (i + 1) % players.length);
+    // After the previous round the player who got the task (targetIndex) becomes
+    // the next spinner. The very first spin just uses the current spinnerIndex.
+    let fromIndex = spinnerIndex;
+    if (phase === 'between' && targetIndex != null) {
+      fromIndex = targetIndex;
+      setSpinnerIndex(targetIndex);
     }
-    const fromIndex = phase === 'between' ? (spinnerIndex + 1) % players.length : spinnerIndex;
     let t = Math.floor(Math.random() * players.length);
     while (t === fromIndex && players.length > 1) {
       t = Math.floor(Math.random() * players.length);
