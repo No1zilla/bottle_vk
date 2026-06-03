@@ -221,10 +221,10 @@ body {
 /* ========== Game arena ========== */
 .bottle-arena {
   position: relative;
-  width: 280px;
-  height: 280px;
-  padding: 12px;
-  margin: 0.5rem auto 1rem;
+  width: 260px;
+  height: 260px;
+  margin: 0.5rem auto 1.5rem;
+  box-sizing: content-box;
 }
 .arena-glow {
   position: absolute;
