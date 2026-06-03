@@ -73,13 +73,14 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     if (!task || roundResolvedRef.current) return;
     roundResolvedRef.current = true;
     const earned = task.points;
-    const playerId = players[spinnerIndex]?.id;
+    // Points go to the player the bottle pointed at (who performed the task).
+    const playerId = players[targetIndex]?.id;
     setPlayers((ps) =>
       ps.map((p) => (p.id === playerId ? { ...p, score: (p.score || 0) + earned } : p))
     );
     setPhase('between');
     setTask(null);
-    setTargetIndex(null);
+    // keep targetIndex around — startSpin uses it to pick the next spinner
     try {
       await addScore(earned);
       await bumpStats({ tasks: 1 });
@@ -99,7 +100,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     roundResolvedRef.current = true;
     setPhase('between');
     setTask(null);
-    setTargetIndex(null);
+    // keep targetIndex so the next spinner is the player who got the task
   }
 
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
