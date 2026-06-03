@@ -68,9 +68,10 @@ export default function BottleSpinner({
         ref={bottleRef}
         className="bottle-svg"
         width={80}
-        height={176}
+        height={160}
         style={{
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+          transformOrigin: '50% 50%',
         }}
       />
     </div>
