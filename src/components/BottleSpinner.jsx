@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import BottleSVG from './BottleSVG.jsx';
 
 const ARENA = 260;
-const RADIUS = 100;
+const RADIUS_BASE = 100;
 
 export default function BottleSpinner({
   players,
@@ -60,34 +60,54 @@ export default function BottleSpinner({
   return (
     <div className="bottle-arena">
       <div className={`arena-glow${isSpinning ? ' active' : ''}`} />
-      {players.map((p, i) => {
-        const angle = (360 / players.length) * i - 90;
-        const rad = (angle * Math.PI) / 180;
-        const x = ARENA / 2 + RADIUS * Math.cos(rad);
-        const y = ARENA / 2 + RADIUS * Math.sin(rad);
-        const isTarget = !isSpinning && i === targetIndex;
-        const isSpinner = i === spinnerIndex;
-        const photo = p.photo_100 || p.photo || '';
-        const initials = (p.name || p.first_name || '?').slice(0, 1).toUpperCase();
-        const className = [
-          'player-dot',
-          isTarget ? 'target' : '',
-          isSpinner ? 'spinner-active' : '',
-        ]
-          .filter(Boolean)
-          .join(' ');
-        const name = p.name || p.first_name || '';
-        return (
-          <React.Fragment key={p.id || i}>
-            <div className={className} style={{ left: x, top: y }} title={name}>
-              {photo ? <img src={photo} alt="" /> : initials}
-            </div>
-            <div className="player-name-label" style={{ left: x, top: y }}>
-              {name.length > 10 ? name.slice(0, 10) + '…' : name}
-            </div>
-          </React.Fragment>
-        );
-      })}
+      {(() => {
+        const n = players.length;
+        // For larger groups push players further out and shrink dots, so
+        // labels don't overlap neighboring chips.
+        const RADIUS = n >= 9 ? 115 : n >= 7 ? 108 : RADIUS_BASE;
+        const dotSize = n >= 9 ? 40 : n >= 7 ? 46 : 52;
+        const maxNameLen = n >= 9 ? 5 : n >= 7 ? 7 : 10;
+        return players.map((p, i) => {
+          const angle = (360 / n) * i - 90;
+          const rad = (angle * Math.PI) / 180;
+          const x = ARENA / 2 + RADIUS * Math.cos(rad);
+          const y = ARENA / 2 + RADIUS * Math.sin(rad);
+          const isTarget = !isSpinning && i === targetIndex;
+          const isSpinner = i === spinnerIndex;
+          const photo = p.photo_100 || p.photo || '';
+          const initials = (p.name || p.first_name || '?').slice(0, 1).toUpperCase();
+          const className = [
+            'player-dot',
+            isTarget ? 'target' : '',
+            isSpinner ? 'spinner-active' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          const name = p.name || p.first_name || '';
+          const dotStyle = {
+            left: x,
+            top: y,
+            width: dotSize,
+            height: dotSize,
+            marginLeft: -dotSize / 2,
+            marginTop: -dotSize / 2,
+            fontSize: n >= 9 ? '0.75rem' : '0.9rem',
+          };
+          return (
+            <React.Fragment key={p.id || i}>
+              <div className={className} style={dotStyle} title={name}>
+                {photo ? <img src={photo} alt="" /> : initials}
+              </div>
+              <div
+                className="player-name-label"
+                style={{ left: x, top: y, marginTop: dotSize / 2 + 4 }}
+              >
+                {name.length > maxNameLen ? name.slice(0, maxNameLen) + '…' : name}
+              </div>
+            </React.Fragment>
+          );
+        });
+      })()}
       <BottleSVG
         ref={bottleRef}
         className="bottle-svg"
