@@ -1,7 +1,8 @@
 import React from 'react';
 import { Panel } from '@vkontakte/vkui';
 
-const MEDAL = ['🥇', '🥈', '🥉'];
+// Plain digits — color of the .gold/.silver/.bronze background indicates the rank.
+const RANK = ['1', '2', '3'];
 
 export default function Results({ id, players, onPlayAgain }) {
   const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -29,7 +30,7 @@ export default function Results({ id, players, onPlayAgain }) {
           }}
         >
           <div className="leader-rank gold" style={{ width: 48, height: 48, fontSize: '1.25rem' }}>
-            🥇
+            1
           </div>
           <div className="leader-avatar" style={{ width: 56, height: 56, fontSize: '1.25rem' }}>
             {winner.photo_100 ? (
@@ -69,7 +70,7 @@ export default function Results({ id, players, onPlayAgain }) {
             style={{ animationDelay: `${i * 50}ms` }}
           >
             <div className={`leader-rank ${rankClass}`}>
-              {i < 3 ? MEDAL[i] : i + 1}
+              {i < 3 ? RANK[i] : i + 1}
             </div>
             <div className="leader-avatar">
               {photo ? <img src={photo} alt="" /> : initials}

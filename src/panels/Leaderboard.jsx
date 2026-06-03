@@ -3,7 +3,9 @@ import { Panel } from '@vkontakte/vkui';
 import { useVKFriends } from '../hooks/useVKFriends.js';
 import { getScore } from '../hooks/useStorage.js';
 
-const MEDAL = ['🥇', '🥈', '🥉'];
+// Plain digits instead of emoji medals — colored backgrounds (.gold/.silver/.bronze)
+// convey the rank reliably even on systems without an emoji font (Windows w/o Segoe UI Emoji).
+const RANK = ['1', '2', '3'];
 
 export default function Leaderboard({ id, currentUser }) {
   const { friends, load } = useVKFriends();
@@ -63,7 +65,7 @@ export default function Leaderboard({ id, currentUser }) {
             style={{ animationDelay: `${i * 50}ms` }}
           >
             <div className={`leader-rank ${rankClass}`}>
-              {i < 3 ? MEDAL[i] : i + 1}
+              {i < 3 ? RANK[i] : i + 1}
             </div>
             <div className="leader-avatar">
               {photo ? <img src={photo} alt="" /> : initials}
