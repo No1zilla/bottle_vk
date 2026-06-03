@@ -1,16 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Panel } from '@vkontakte/vkui';
 import { getScore, getStats } from '../hooks/useStorage.js';
+import { useSessionState } from '../hooks/useSessionState.js';
 
 export default function Profile({ id, currentUser }) {
-  const [score, setScoreState] = useState(0);
-  const [stats, setStats] = useState({ games: 0, tasks: 0 });
+  // Cache the last known values in sessionStorage so they don't flash to 0
+  // when the user returns to the Profile tab.
+  const [score, setScoreState] = useSessionState('bottle_profile_score', 0);
+  const [stats, setStats] = useSessionState('bottle_profile_stats', { games: 0, tasks: 0 });
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      setScoreState(await getScore());
-      setStats(await getStats());
+      try {
+        const s = await getScore();
+        if (!cancelled) setScoreState(s);
+      } catch {}
+      try {
+        const st = await getStats();
+        if (!cancelled) setStats(st);
+      } catch {}
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!currentUser) {
@@ -22,7 +35,16 @@ export default function Profile({ id, currentUser }) {
   }
 
   const initials = (currentUser.first_name || '?')[0].toUpperCase();
-  const photo = currentUser.photo_100 || '';
+  // Prefer higher-resolution avatar variants to avoid pixelated images.
+  const photo =
+    currentUser.photo_max_orig ||
+    currentUser.photo_max ||
+    currentUser.photo_400_orig ||
+    currentUser.photo_400 ||
+    currentUser.photo_200_orig ||
+    currentUser.photo_200 ||
+    currentUser.photo_100 ||
+    '';
 
   return (
     <Panel id={id}>
