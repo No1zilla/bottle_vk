@@ -12,40 +12,58 @@ export default function BottleSpinner({
   onSpinComplete,
 }) {
   const bottleRef = useRef(null);
-  // When the user returns from another tab, initialize rotation so the bottle
-  // is already pointing at the saved target (no animation, just the correct
-  // resting position).
+  const wasSpinningRef = useRef(false);
+
+  // Rotation tracked as a single source of truth; updated synchronously below.
   const [rotation, setRotation] = useState(() => {
     if (targetIndex == null || !players?.length) return 0;
     return (360 / players.length) * targetIndex;
   });
 
+  // Effect 1: a fresh spin was requested.
+  // Compute final angle (with random whole turns) ONCE and rely on CSS
+  // transition to animate. No post-stop "snap" — the bottle ends at the
+  // exact angle of the target.
   useEffect(() => {
-    if (targetIndex == null || !players?.length) return;
-    const targetAngle = (360 / players.length) * targetIndex;
-    if (!isSpinning) {
-      // Snap to target without animation (e.g. when re-mounting on tab return).
-      const el = bottleRef.current;
-      if (el) {
-        const prev = el.style.transition;
-        el.style.transition = 'none';
-        const base = Math.floor(rotation / 360) * 360;
-        setRotation(base + targetAngle);
-        // force reflow before restoring transition
-        // eslint-disable-next-line no-unused-expressions
-        el.offsetWidth;
-        requestAnimationFrame(() => {
-          el.style.transition = prev;
-        });
-      }
-      return;
-    }
-    const fullTurns = 720 + Math.floor(Math.random() * 720);
-    const base = Math.floor(rotation / 360) * 360;
-    const next = base + fullTurns + targetAngle;
+    if (!isSpinning || targetIndex == null || !players?.length) return;
+    if (wasSpinningRef.current) return; // already spinning, don't recompute
+    wasSpinningRef.current = true;
+    const n = players.length;
+    const targetAngle = (360 / n) * targetIndex;
+    const fullTurns = (3 + Math.floor(Math.random() * 3)) * 360; // 3-5 full turns
+    const currentMod = ((rotation % 360) + 360) % 360;
+    // distance from current mod-angle to targetAngle going clockwise (0..360)
+    let delta = (targetAngle - currentMod + 360) % 360;
+    const next = rotation + fullTurns + delta;
     setRotation(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSpinning, targetIndex, players.length]);
+
+  // Reset the "is currently spinning" guard when the parent ends the spin.
+  useEffect(() => {
+    if (!isSpinning) wasSpinningRef.current = false;
+  }, [isSpinning]);
+
+  // Effect 2: state restoration on tab return (NOT spinning, target known).
+  // Snap to target WITHOUT animation so the bottle is in the saved orientation.
+  useEffect(() => {
+    if (isSpinning || targetIndex == null || !players?.length) return;
+    const n = players.length;
+    const targetAngle = (360 / n) * targetIndex;
+    const el = bottleRef.current;
+    if (!el) return;
+    const prev = el.style.transition;
+    el.style.transition = 'none';
+    setRotation(targetAngle);
+    // force reflow to commit "no transition" before re-enabling
+    // eslint-disable-next-line no-unused-expressions
+    el.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      el.style.transition = prev;
+    });
+    // Run only on mount — don't re-snap mid-life of the component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const el = bottleRef.current;
@@ -62,8 +80,6 @@ export default function BottleSpinner({
       <div className={`arena-glow${isSpinning ? ' active' : ''}`} />
       {(() => {
         const n = players.length;
-        // For larger groups push players further out and shrink dots, so
-        // labels don't overlap neighboring chips.
         const RADIUS = n >= 9 ? 115 : n >= 7 ? 108 : RADIUS_BASE;
         const dotSize = n >= 9 ? 40 : n >= 7 ? 46 : 52;
         const maxNameLen = n >= 9 ? 5 : n >= 7 ? 7 : 10;
