@@ -1,9 +1,10 @@
 import React, { forwardRef } from 'react';
 
-// Bottle is drawn symmetrically around the viewBox center (50, 100).
-// Top of the cap is at y = 0 (12 o'clock), tail of the bottle is at y = 200.
-// Because the bottle visually points UPWARD at rotation = 0, we can rotate
-// it by an angle equal to the target player's clockwise position from 12.
+// Bottle drawn symmetrically around viewBox center (50, 100).
+// Total height of the shape = 180 (from y=10 tip to y=190 bottom),
+// so the geometric center of the bottle is exactly at y=100.
+// This ensures CSS rotation around the SVG center pivots the bottle
+// around its own visual middle — it stays put while spinning.
 const BottleSVG = forwardRef(function BottleSVG(
   { width = 100, height = 200, className = '', style },
   ref
@@ -37,42 +38,39 @@ const BottleSVG = forwardRef(function BottleSVG(
         </linearGradient>
       </defs>
 
-      {/* All shapes are translated so the visual axis is centered around (50, 100).
-          Cap at the very top (y=0..14), body extending downward to y=196. */}
-
-      {/* pointer arrow at the very tip — same direction the bottle points */}
+      {/* pointer tip (y=10) */}
       <polygon
-        points="50,0 44,12 56,12"
+        points="50,10 44,20 56,20"
         fill="#FFEB3B"
         stroke="#F57F17"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
 
-      {/* cap */}
-      <rect x="40" y="8" width="20" height="14" rx="3" fill="url(#cap)" />
-      <rect x="40" y="12" width="20" height="2" fill="rgba(0,0,0,0.2)" />
+      {/* cap (y=16..28) */}
+      <rect x="40" y="16" width="20" height="14" rx="3" fill="url(#cap)" />
+      <rect x="40" y="20" width="20" height="2" fill="rgba(0,0,0,0.2)" />
 
-      {/* neck */}
-      <rect x="42" y="22" width="16" height="36" rx="2" fill="url(#glass)" />
-      <rect x="44" y="24" width="3" height="32" fill="rgba(255,255,255,0.35)" />
+      {/* neck (y=30..60) */}
+      <rect x="42" y="30" width="16" height="32" rx="2" fill="url(#glass)" />
+      <rect x="44" y="32" width="3" height="28" fill="rgba(255,255,255,0.35)" />
 
-      {/* body */}
+      {/* body (y=60..190 — center is exactly y=100, matching viewBox center) */}
       <path
-        d="M42 58 Q26 78 22 100 L22 186 Q22 198 34 198 L66 198 Q78 198 78 186 L78 100 Q74 78 58 58 Z"
+        d="M42 60 Q26 80 22 100 L22 178 Q22 190 34 190 L66 190 Q78 190 78 178 L78 100 Q74 80 58 60 Z"
         fill="url(#glass)"
       />
 
       {/* highlights */}
       <path
-        d="M30 100 Q28 110 28 130 L28 184 Q28 192 34 192"
+        d="M30 100 Q28 110 28 130 L28 176 Q28 184 34 184"
         stroke="rgba(255,255,255,0.4)"
         strokeWidth="3"
         fill="none"
         strokeLinecap="round"
       />
       <path
-        d="M70 100 Q72 110 72 130 L72 184 Q72 192 66 192"
+        d="M70 100 Q72 110 72 130 L72 176 Q72 184 66 184"
         stroke="rgba(0,0,0,0.25)"
         strokeWidth="3"
         fill="none"
@@ -80,19 +78,19 @@ const BottleSVG = forwardRef(function BottleSVG(
       />
 
       {/* label */}
-      <rect x="28" y="118" width="44" height="56" rx="4" fill="url(#label)" />
+      <rect x="28" y="115" width="44" height="55" rx="4" fill="url(#label)" />
       <rect
         x="28"
-        y="118"
+        y="115"
         width="44"
-        height="56"
+        height="55"
         rx="4"
         fill="none"
         stroke="rgba(0,0,0,0.15)"
         strokeWidth="1"
       />
-      <circle cx="50" cy="146" r="11" fill="none" stroke="#0077FF" strokeWidth="2.5" />
-      <circle cx="50" cy="146" r="4" fill="#7B61FF" />
+      <circle cx="50" cy="142" r="11" fill="none" stroke="#0077FF" strokeWidth="2.5" />
+      <circle cx="50" cy="142" r="4" fill="#7B61FF" />
     </svg>
   );
 });
