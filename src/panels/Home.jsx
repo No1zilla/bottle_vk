@@ -60,6 +60,12 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
       setNameError('Имя не может быть пустым или состоять только из пробелов');
       return;
     }
+    // Require at least one letter (any language) — names made of only digits
+    // or punctuation aren't real names.
+    if (!/\p{L}/u.test(trimmed)) {
+      setNameError('Имя должно содержать хотя бы одну букву');
+      return;
+    }
     if (players.length >= PLAYERS_MAX) {
       setNameError(`Максимум ${PLAYERS_MAX} игроков в одной игре`);
       return;
@@ -249,7 +255,7 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
               <button
                 className="btn-gradient"
                 onClick={addPlayer}
-                disabled={!name.trim()}
+                disabled={!name.trim() || !/\p{L}/u.test(name)}
               >
                 Добавить
               </button>
