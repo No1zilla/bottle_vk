@@ -15,6 +15,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
   const [cooldownLeft, setCooldownLeft] = useState(() => getAdCooldownMs());
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const roundResolvedRef = useRef(false);
 
   // Tick down the ad cooldown timer while it's active
@@ -42,6 +43,20 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       hideBanner();
     };
   }, []);
+
+  // Lock body scroll while the end-game confirmation modal is open + ESC closes it
+  useEffect(() => {
+    if (!confirmEndOpen) return;
+    document.body.classList.add('modal-open');
+    const onKey = (e) => {
+      if (e.key === 'Escape') setConfirmEndOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [confirmEndOpen]);
 
   function startSpin() {
     if (players.length < 2) return;
@@ -103,7 +118,6 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     // keep targetIndex so the next spinner is the player who got the task
   }
 
-  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   function requestEndGame() {
     setConfirmEndOpen(true);
   }
