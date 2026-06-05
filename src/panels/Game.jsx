@@ -105,12 +105,21 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   async function handleSkip() {
     if (roundResolvedRef.current || adLoading || cooldownLeft > 0) return;
     setAdLoading(true);
-    // Show rewarded ad before granting skip. If ads aren't available
-    // (running outside VK, slot not approved yet, etc.) — skip silently.
-    await showRewardedAd();
-    setAdLoading(false);
-    // Refresh cooldown after a successful (or attempted) ad show
-    setCooldownLeft(getAdCooldownMs());
+    try {
+      // Show rewarded ad before granting skip. If ads aren't available
+      // (running outside VK, slot not approved yet, etc.) — skip silently.
+      // Guard against the bridge never resolving (e.g. ad closed by user
+      // outside VK's standard flow) — fall through after 8 seconds.
+      await Promise.race([
+        showRewardedAd(),
+        new Promise((resolve) => setTimeout(resolve, 8000)),
+      ]);
+    } catch {
+      // swallow — we always want to release the UI
+    } finally {
+      setAdLoading(false);
+      setCooldownLeft(getAdCooldownMs());
+    }
     if (roundResolvedRef.current) return;
     roundResolvedRef.current = true;
     setPhase('between');
