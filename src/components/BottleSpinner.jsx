@@ -116,7 +116,11 @@ export default function BottleSpinner({
               </div>
               <div
                 className="player-name-label"
-                style={{ left: x, top: y, marginTop: dotSize / 2 + 4 }}
+                style={
+                  y < ARENA / 2
+                    ? { left: x, top: y, marginTop: -(dotSize / 2 + 16) }
+                    : { left: x, top: y, marginTop: dotSize / 2 + 4 }
+                }
               >
                 {name.length > maxNameLen ? name.slice(0, maxNameLen) + '…' : name}
               </div>
