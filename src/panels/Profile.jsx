@@ -3,6 +3,14 @@ import { Panel } from '@vkontakte/vkui';
 import { getScore, getStats } from '../hooks/useStorage.js';
 import { useSessionState } from '../hooks/useSessionState.js';
 
+function pluralGames(n) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'игра';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'игры';
+  return 'игр';
+}
+
 export default function Profile({ id, currentUser }) {
   // Cache the last known values in sessionStorage so they don't flash to 0
   // when the user returns to the Profile tab.
@@ -69,7 +77,7 @@ export default function Profile({ id, currentUser }) {
       <div className="stats-row">
         <div className="stat-card">
           <div className="stat-value">{stats.games}</div>
-          <div className="stat-label">Игр</div>
+          <div className="stat-label">{pluralGames(stats.games)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{stats.tasks}</div>

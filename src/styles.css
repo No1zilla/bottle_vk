@@ -288,7 +288,7 @@ body {
   margin-top: 30px;
   margin-left: -32px;
   width: 64px;
-  z-index: 3;
+  z-index: 1;
   pointer-events: none;
   text-shadow: 0 1px 3px var(--bg), 0 0 6px var(--bg);
 }
