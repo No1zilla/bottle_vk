@@ -17,6 +17,18 @@ export default function Results({ id, players, onPlayAgain }) {
 
   const [copied, setCopied] = useState(false);
 
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await bridge.send('VKWebAppCopyText', { text: shareText });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      try { navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 2500); } catch {}
+    }
+  }
+
   async function handleShare() {
     try {
       await bridge.send('VKWebAppShare', { link: 'https://vk.com/app54583678' });
@@ -106,8 +118,14 @@ export default function Results({ id, players, onPlayAgain }) {
           gap: '0.625rem',
         }}
       >
+        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 14px', fontSize: '0.8rem', color: '#aaa', lineHeight: 1.5, wordBreak: 'break-word' }}>
+          {shareText}
+        </div>
+        <button className="btn-ghost" onClick={handleCopy} style={copied ? { color: '#4ade80', borderColor: '#4ade80' } : {}}>
+          {copied ? 'Скопировано!' : 'Скопировать текст'}
+        </button>
         <button className="btn-ghost" onClick={handleShare}>
-          Поделиться результатами
+          Поделиться в ВКонтакте
         </button>
         <button className="btn-gradient" onClick={onPlayAgain}>
           Играть снова
