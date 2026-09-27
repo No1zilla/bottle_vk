@@ -16,8 +16,8 @@ export default function Results({ id, players, onPlayAgain }) {
       ? `Сыграли в Бутылочку! Победил ${winner.name} с ${winner.score || 0} очками 🏆 Сыграй сам:`
       : 'Сыграли в Бутылочку! Сыграй сам:';
     try {
-      await bridge.send('VKWebAppShowWallPostBox', {
-        message: text + ' https://vk.com/app54583678',
+      await bridge.send('VKWebAppCopyText', {
+        text: text + ' https://vk.com/app54583678',
       });
       if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'share_results');
     } catch {}
@@ -104,7 +104,7 @@ export default function Results({ id, players, onPlayAgain }) {
         }}
       >
         <button className="btn-ghost" onClick={handleShare}>
-          Поделиться результатами
+          Скопировать результаты
         </button>
         <button className="btn-gradient" onClick={onPlayAgain}>
           Играть снова
