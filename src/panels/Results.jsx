@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import { Panel } from '@vkontakte/vkui';
 
@@ -11,14 +11,17 @@ export default function Results({ id, players, onPlayAgain }) {
   const winnerScore = winner?.score || 0;
 
 
+  const shareText = winner
+    ? `🏆 ${winner.name} победил(а) в Бутылочке с ${winner.score || 0} очками! Сыграй сам: vk.com/app54583678`
+    : 'Сыграли в Бутылочку! Сыграй сам: vk.com/app54583678';
+
+  const [copied, setCopied] = useState(false);
+
   async function handleShare() {
-    const text = winner
-      ? `Сыграли в Бутылочку! Победил ${winner.name} с ${winner.score || 0} очками 🏆 Сыграй сам:`
-      : 'Сыграли в Бутылочку! Сыграй сам:';
     try {
-      await bridge.send('VKWebAppCopyText', {
-        text: text + ' https://vk.com/app54583678',
-      });
+      await bridge.send('VKWebAppCopyText', { text: shareText });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
       if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'share_results');
     } catch {}
   }
@@ -103,8 +106,11 @@ export default function Results({ id, players, onPlayAgain }) {
           gap: '0.625rem',
         }}
       >
-        <button className="btn-ghost" onClick={handleShare}>
-          Скопировать результаты
+        <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '12px 14px', fontSize: '0.875rem', color: '#aaa', lineHeight: 1.5, wordBreak: 'break-word' }}>
+          {shareText}
+        </div>
+        <button className="btn-ghost" onClick={handleShare} style={copied ? { color: '#4ade80', borderColor: '#4ade80' } : {}}>
+          {copied ? 'Скопировано!' : 'Скопировать и поделиться'}
         </button>
         <button className="btn-gradient" onClick={onPlayAgain}>
           Играть снова
