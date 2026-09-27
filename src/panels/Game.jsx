@@ -59,6 +59,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   }, [confirmEndOpen]);
 
   function startSpin() {
+    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', phase === 'ready' ? 'game_start' : 'round_spin', { players: players.length });
     if (players.length < 2) return;
     // After the previous round the player who got the task (targetIndex) becomes
     // the next spinner. The very first spin just uses the current spinnerIndex.
@@ -87,6 +88,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   async function handleComplete() {
     if (!task || roundResolvedRef.current) return;
     roundResolvedRef.current = true;
+    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'task_complete', { level: task?.level });
     const earned = task.points;
     // Points go to the player the bottle pointed at (who performed the task).
     const playerId = players[targetIndex]?.id;
@@ -122,6 +124,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     }
     if (roundResolvedRef.current) return;
     roundResolvedRef.current = true;
+    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'task_skip');
     setPhase('between');
     setTask(null);
     // keep targetIndex so the next spinner is the player who got the task
@@ -136,6 +139,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   function handleEndGame() {
     setConfirmEndOpen(false);
     bumpStats({ games: 1 }).catch(() => {});
+    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'game_end', { players: players.length });
     try {
       sessionStorage.removeItem('bottle_game_spinnerIndex');
       sessionStorage.removeItem('bottle_game_targetIndex');
