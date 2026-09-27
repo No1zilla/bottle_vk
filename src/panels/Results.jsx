@@ -1,4 +1,5 @@
 import React from 'react';
+import bridge from '@vkontakte/vk-bridge';
 import { Panel } from '@vkontakte/vkui';
 
 // Plain digits — color of the .gold/.silver/.bronze background indicates the rank.
@@ -8,6 +9,17 @@ export default function Results({ id, players, onPlayAgain }) {
   const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
   const winner = sorted[0];
   const winnerScore = winner?.score || 0;
+
+
+  async function handleShare() {
+    const text = winner
+      ? `Сыграли в Бутылочку! Победил ${winner.name} с ${winner.score || 0} очками 🏆 Сыграй сам:`
+      : 'Сыграли в Бутылочку! Сыграй сам:';
+    try {
+      await bridge.send('VKWebAppShare', { link: 'https://vk.com/app54583678' });
+      if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'share_results');
+    } catch {}
+  }
 
   return (
     <Panel id={id}>
@@ -89,6 +101,9 @@ export default function Results({ id, players, onPlayAgain }) {
           gap: '0.625rem',
         }}
       >
+        <button className="btn-ghost" onClick={handleShare}>
+          Поделиться результатами
+        </button>
         <button className="btn-gradient" onClick={onPlayAgain}>
           Играть снова
         </button>
