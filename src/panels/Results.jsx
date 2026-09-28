@@ -17,8 +17,6 @@ export default function Results({ id, players, onPlayAgain }) {
 
   const [copied, setCopied] = useState(false);
 
-  const [copied, setCopied] = useState(false);
-
   async function handleCopy() {
     try {
       await bridge.send('VKWebAppCopyText', { text: shareText });
