@@ -8,6 +8,28 @@ import { addScore, bumpStats } from '../hooks/useStorage.js';
 import { showBanner, hideBanner, showRewardedAd, getAdCooldownMs } from '../hooks/useAds.js';
 import { useSessionState } from '../hooks/useSessionState.js';
 
+function AnswerScreen({ answer, playerName, onNext }) {
+  const [countdown, setCountdown] = React.useState(10);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((v) => {
+        if (v <= 1) { clearInterval(interval); onNext(); return 0; }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div className="answer-screen">
+      <div className="answer-screen-name">{playerName} отвечает:</div>
+      <div className="answer-screen-text">"{answer}"</div>
+      <button className="btn-gradient" onClick={onNext}>
+        Далее <span style={{ opacity: 0.6, fontSize: '0.9em' }}>({countdown})</span>
+      </button>
+    </div>
+  );
+}
+
 export default function Game({ id, players, setPlayers, onEndGame }) {
   const [spinnerIndex, setSpinnerIndex] = useSessionState('bottle_game_spinnerIndex', 0);
 
@@ -300,13 +322,11 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       )}
 
       {phase === 'answer' && shownAnswer && (
-        <div className="answer-screen">
-          <div className="answer-screen-name">{target?.name || target?.first_name} отвечает:</div>
-          <div className="answer-screen-text">"{shownAnswer}"</div>
-          <button className="btn-gradient" onClick={handleAnswerNext}>
-            Далее →
-          </button>
-        </div>
+        <AnswerScreen
+          answer={shownAnswer}
+          playerName={target?.name || target?.first_name}
+          onNext={handleAnswerNext}
+        />
       )}
 
       {phase === 'task' && task && (
