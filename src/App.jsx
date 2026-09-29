@@ -22,8 +22,27 @@ import Profile from './panels/Profile.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
 import { useVKUser } from './hooks/useVKUser.js';
 
-const BOT_1 = { id: 'bot_1', name: 'Маша', isBot: true, score: 0, avatar: '🐱' };
-const BOT_2 = { id: 'bot_2', name: 'Катя', isBot: true, score: 0, avatar: '🦊' };
+const BOT_POOL = [
+  { name: 'Анастасия', seed: 'nastya-v' },
+  { name: 'Екатерина', seed: 'kate-n' },
+  { name: 'Ольга', seed: 'olga-l' },
+  { name: 'Мария', seed: 'masha-k' },
+  { name: 'Александр', seed: 'alex-m' },
+  { name: 'Дмитрий', seed: 'dima-s' },
+  { name: 'Никита', seed: 'nikita-s' },
+  { name: 'Артём', seed: 'artem-v' },
+];
+function pickBots() {
+  const shuffled = [...BOT_POOL].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 2).map((b, i) => ({
+    id: 'bot_' + (i + 1),
+    name: b.name,
+    isBot: true,
+    score: 0,
+    photo_100: `https://api.dicebear.com/9.x/personas/svg?seed=${b.seed}`,
+  }));
+}
+
 
 function clearGameSession() {
   try {
@@ -38,7 +57,7 @@ export default function App() {
   const [story, setStory] = useState('game');
   // Start directly on the gameplay screen
   const [activePanel, setActivePanel] = useState('gameplay');
-  const [players, setPlayers] = useState([BOT_1, BOT_2]);
+  const [players, setPlayers] = useState(() => pickBots());
   const [scheme, setScheme] = useState('space_gray');
   const { user } = useVKUser();
   const userAddedRef = useRef(false);
@@ -60,7 +79,7 @@ export default function App() {
       isMe: true,
       score: 0,
     };
-    setPlayers([me, BOT_1, BOT_2]);
+    setPlayers((ps) => { const bots = ps.filter((p) => p.isBot); return [me, ...bots]; });
   }, [user]);
 
   useEffect(() => {
