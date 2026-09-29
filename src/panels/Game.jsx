@@ -341,7 +341,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           showTimer={true}
           timerSeconds={players[targetIndex]?.isBot ? 5 : 10}
           actionsDisabled={!players[targetIndex]?.isMe}
-          onTimeout={() => {
+          onTimeout={players[targetIndex]?.isBot ? null : () => {
             if (roundResolvedRef.current) return;
             roundResolvedRef.current = true;
             setPhase('between');
