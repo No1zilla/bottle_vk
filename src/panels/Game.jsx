@@ -277,7 +277,9 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
 
   const spinner = players[spinnerIndex];
   const target = targetIndex != null ? players[targetIndex] : null;
-  const showSpinButton = phase === 'ready' || phase === 'between';
+  const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
+  const nextSpinner = players[nextSpinnerIndex];
+  const showSpinButton = (phase === 'ready' || phase === 'between') && nextSpinner?.isMe;
   const spinnerName = spinner?.name || spinner?.first_name || '';
   const spinnerScore = spinner?.score || 0;
 
