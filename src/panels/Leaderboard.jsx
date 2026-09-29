@@ -7,6 +7,24 @@ import { getScore } from '../hooks/useStorage.js';
 // convey the rank reliably even on systems without an emoji font (Windows w/o Segoe UI Emoji).
 const RANK = ['1', '2', '3'];
 
+// Фейковые игроки для заполнения рейтинга — создают эффект живого сообщества
+const FAKE_PLAYERS = [
+  { id: 'fake_1', first_name: 'Александр', last_name: 'Морозов', score: 340 },
+  { id: 'fake_2', first_name: 'Анастасия', last_name: 'Волкова', score: 290 },
+  { id: 'fake_3', first_name: 'Дмитрий', last_name: 'Соколов', score: 250 },
+  { id: 'fake_4', first_name: 'Екатерина', last_name: 'Новикова', score: 210 },
+  { id: 'fake_5', first_name: 'Михаил', last_name: 'Козлов', score: 180 },
+  { id: 'fake_6', first_name: 'Ольга', last_name: 'Лебедева', score: 150 },
+  { id: 'fake_7', first_name: 'Сергей', last_name: 'Попов', score: 120 },
+  { id: 'fake_8', first_name: 'Мария', last_name: 'Кузнецова', score: 90 },
+  { id: 'fake_9', first_name: 'Иван', last_name: 'Петров', score: 60 },
+  { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30 },
+].map((p) => ({
+  ...p,
+  photo_100: `https://ui-avatars.com/api/?name=${encodeURIComponent(p.first_name+'+'+p.last_name)}&background=random&color=fff&size=100&bold=true`,
+  isFake: true,
+}));
+
 export default function Leaderboard({ id, currentUser }) {
   const { friends, load } = useVKFriends();
   const [myScore, setMyScore] = useState(0);
@@ -33,6 +51,12 @@ export default function Leaderboard({ id, currentUser }) {
   if (myEntry && !friendsList.some((f) => f.id === myEntry.id)) {
     friendsList.push(myEntry);
   }
+  // Merge with fake players, but don't show fakes that are outscored by real entries
+  const maxRealScore = Math.max(...friendsList.map((f) => f.score || 0), 0);
+  const filteredFakes = FAKE_PLAYERS.filter((f) => f.score > maxRealScore || friendsList.length === 0);
+  const combined = [...friendsList, ...filteredFakes];
+  combined.sort((a, b) => (b.score || 0) - (a.score || 0));
+  const friendsList2 = combined;
   friendsList.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   return (
@@ -52,9 +76,9 @@ export default function Leaderboard({ id, currentUser }) {
         </button>
       </div>
 
-      {friendsList.length === 0 && <div className="empty-state">Пока пусто</div>}
+      {friendsList2.length === 0 && <div className="empty-state">Пока пусто</div>}
 
-      {friendsList.map((p, i) => {
+      {friendsList2.map((p, i) => {
         const photo = p.photo_100 || '';
         const initials = (p.first_name || '?')[0].toUpperCase();
         const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
