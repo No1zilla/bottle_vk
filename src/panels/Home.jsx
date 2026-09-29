@@ -5,13 +5,11 @@ import BottleSVG from '../components/BottleSVG.jsx';
 const NAME_MAX_LEN = 16;
 const PLAYERS_MAX = 12;
 
-// Strip emoji / symbol unicode ranges to keep names rendering cleanly inside chips.
 const EMOJI_RE = /\p{Extended_Pictographic}|\p{Emoji_Presentation}|️|[‍]/gu;
 function stripEmoji(s) {
   try {
     return s.replace(EMOJI_RE, '');
   } catch {
-    // Safari / older engines without /u + property escapes — fall back to a coarser strip.
     return s.replace(/[☀-➿\u{1F000}-\u{1FFFF}]/gu, '');
   }
 }
@@ -21,7 +19,6 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
 
-  // Lock body scroll while modal is open + close by ESC.
   useEffect(() => {
     if (!modalOpen) return;
     document.body.classList.add('modal-open');
@@ -33,7 +30,6 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
       document.body.classList.remove('modal-open');
       document.removeEventListener('keydown', onKey);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalOpen]);
 
   function openModal() {
@@ -57,17 +53,15 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
   function addPlayer() {
     const trimmed = name.trim().slice(0, NAME_MAX_LEN);
     if (!trimmed) {
-      setNameError('Имя не может быть пустым или состоять только из пробелов');
+      setNameError('Имя не может быть пустым');
       return;
     }
-    // Require at least one letter (any language) — names made of only digits
-    // or punctuation aren't real names.
     if (!/\p{L}/u.test(trimmed)) {
       setNameError('Имя должно содержать хотя бы одну букву');
       return;
     }
     if (players.length >= PLAYERS_MAX) {
-      setNameError(`Максимум ${PLAYERS_MAX} игроков в одной игре`);
+      setNameError(`Максимум ${PLAYERS_MAX} игроков`);
       return;
     }
     setPlayers([
@@ -85,26 +79,6 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
     setPlayers(players.filter((p) => p.id !== pid));
   }
 
-  function addMe() {
-    if (!currentUser) return;
-    if (players.some((p) => p.id === `vk_${currentUser.id}`)) return;
-    if (players.length >= PLAYERS_MAX) return;
-    const myName = `${currentUser.first_name} (я)`.slice(0, NAME_MAX_LEN);
-    setPlayers([
-      ...players,
-      {
-        id: `vk_${currentUser.id}`,
-        name: myName,
-        photo_100: currentUser.photo_100,
-        isMe: true,
-        score: 0,
-      },
-    ]);
-  }
-
-  // Close only when the click started AND ended on the overlay itself
-  // (prevents accidental close when user starts text selection inside the
-  // input and releases the mouse outside).
   function onOverlayMouseDown(e) {
     if (e.target === e.currentTarget) {
       e.currentTarget.dataset.startedOnOverlay = '1';
@@ -122,6 +96,8 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
   }
 
   const canAddMore = players.length < PLAYERS_MAX;
+  const humanPlayers = players.filter((p) => !p.isBot);
+  const bots = players.filter((p) => p.isBot);
 
   return (
     <Panel id={id}>
@@ -138,23 +114,21 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
         <BottleSVG className="home-bottle-svg" width={140} height={300} />
       </div>
 
+      {/* Players section */}
       <div style={{ padding: '0 1rem 0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h2 className="h-section">Игроки</h2>
         <span className="text-secondary">{players.length} / {PLAYERS_MAX}</span>
       </div>
 
-      {players.length === 0 ? (
-        <div className="empty-state">
-          Добавь минимум 2 игроков, чтобы начать партию
-        </div>
-      ) : (
-        <div className="players-row">
-          {players.map((p) => {
-            const photo = p.photo_100 || '';
-            const initials = (p.name || '?')[0].toUpperCase();
-            return (
-              <div className="player-chip" key={p.id} title={p.name}>
-                {photo ? <img src={photo} alt="" /> : initials}
+      <div className="players-row">
+        {players.map((p) => {
+          const photo = p.photo_100 || '';
+          const initials = (p.name || '?')[0].toUpperCase();
+          const isRemovable = !p.isMe && !(p.isBot && bots.length <= 1);
+          return (
+            <div className={`player-chip${p.isBot ? ' player-chip-bot' : ''}`} key={p.id} title={p.name}>
+              {photo ? <img src={photo} alt="" /> : initials}
+              {isRemovable && (
                 <button
                   className="player-chip-remove"
                   onClick={() => removePlayer(p.id)}
@@ -162,57 +136,43 @@ export default function Home({ id, players, setPlayers, currentUser, onStart }) 
                 >
                   ×
                 </button>
-              </div>
-            );
-          })}
-          {canAddMore && (
-            <div
-              className="player-chip player-chip-add"
-              onClick={openModal}
-              title="Добавить"
-            >
-              +
+              )}
             </div>
-          )}
-        </div>
-      )}
-
-      {!canAddMore && (
-        <div
-          className="text-secondary"
-          style={{ textAlign: 'center', padding: '0.5rem 1rem' }}
-        >
-          Достигнут лимит {PLAYERS_MAX} игроков
-        </div>
-      )}
-
-      <div style={{ padding: '1.5rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {players.length === 0 && (
-          <button className="btn-ghost" onClick={openModal}>
-            Добавить игрока
-          </button>
-        )}
-        {currentUser && !players.some((p) => p.isMe) && canAddMore && (
-          <button className="btn-ghost" onClick={addMe}>
-            Добавить меня
-          </button>
-        )}
-        {players.length > 0 && (
-          <button
-            className="btn-ghost"
-            style={{ color: '#ff6b6b' }}
-            onClick={() => setPlayers([])}
+          );
+        })}
+        {canAddMore && (
+          <div
+            className="player-chip player-chip-add"
+            onClick={openModal}
+            title="Добавить игрока"
           >
-            Удалить всех
-          </button>
+            +
+          </div>
         )}
+      </div>
+
+      <div style={{ padding: '0 1rem', marginBottom: '0.25rem' }}>
+        <div className="text-secondary" style={{ fontSize: '0.8rem' }}>
+          Позови друзей — нажми + чтобы добавить
+        </div>
+      </div>
+
+      <div style={{ padding: '1rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         <button
           className="btn-gradient"
-          disabled={players.length < 2}
           onClick={onStart}
         >
-          Начать игру
+          Крутить бутылку
         </button>
+        {players.some((p) => !p.isBot) && (
+          <button
+            className="btn-ghost"
+            style={{ color: '#ff6b6b', fontSize: '0.85rem', padding: '0.5rem' }}
+            onClick={() => setPlayers(players.filter((p) => p.isBot))}
+          >
+            Удалить людей из игры
+          </button>
+        )}
       </div>
 
       {modalOpen && (

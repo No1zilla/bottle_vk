@@ -9,6 +9,14 @@ import { useSessionState } from '../hooks/useSessionState.js';
 
 export default function Game({ id, players, setPlayers, onEndGame }) {
   const [spinnerIndex, setSpinnerIndex] = useSessionState('bottle_game_spinnerIndex', 0);
+
+  // Whenever players list changes and we're in ready phase, ensure human spins first
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    const meIdx = players.findIndex((p) => p.isMe);
+    if (meIdx >= 0) setSpinnerIndex(meIdx);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
   const [targetIndex, setTargetIndex] = useSessionState('bottle_game_targetIndex', null);
   const [task, setTask] = useSessionState('bottle_game_task', null);
   const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | between
@@ -16,6 +24,11 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   const [adLoading, setAdLoading] = useState(false);
   const [cooldownLeft, setCooldownLeft] = useState(() => getAdCooldownMs());
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [autoSpinCountdown, setAutoSpinCountdown] = useState(null);
+  const autoSpinTimerRef = useRef(null);
+  const autoSpinIntervalRef = useRef(null);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
   const roundResolvedRef = useRef(false);
 
   // Tick down the ad cooldown timer while it's active
@@ -58,6 +71,22 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     };
   }, [confirmEndOpen]);
 
+  function openAddPlayer() {
+    if (isSpinning || phase === 'spinning') return;
+    setNewPlayerName('');
+    setAddPlayerOpen(true);
+  }
+
+  function confirmAddPlayer() {
+    const trimmed = newPlayerName.trim().slice(0, 16);
+    if (!trimmed || !/\p{L}/u.test(trimmed)) return;
+    setPlayers((ps) => [
+      ...ps,
+      { id: 'p_' + Date.now(), name: trimmed, score: 0 },
+    ]);
+    setAddPlayerOpen(false);
+  }
+
   function startSpin() {
     if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', phase === 'ready' ? 'game_start' : 'round_spin', { players: players.length });
     if (players.length < 2) return;
@@ -68,13 +97,26 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       fromIndex = targetIndex;
       setSpinnerIndex(targetIndex);
     }
-    let t = Math.floor(Math.random() * players.length);
-    while (t === fromIndex && players.length > 1) {
+    // Ensure human player gets picked at least every other turn
+    const humanIndex = players.findIndex((p) => p.isMe);
+    let t;
+    if (humanIndex >= 0 && humanIndex !== fromIndex) {
+      // 50% chance to land on human player to keep them engaged
+      t = Math.random() < 0.5 ? humanIndex : Math.floor(Math.random() * players.length);
+      // fallback: if we accidentally picked fromIndex, pick human
+      if (t === fromIndex) t = humanIndex;
+    } else {
       t = Math.floor(Math.random() * players.length);
+      while (t === fromIndex && players.length > 1) {
+        t = Math.floor(Math.random() * players.length);
+      }
     }
     setTargetIndex(t);
     setTask(null);
     roundResolvedRef.current = false;
+    setAutoSpinCountdown(null);
+    clearTimeout(autoSpinTimerRef.current);
+    clearInterval(autoSpinIntervalRef.current);
     setPhase('spinning');
     setIsSpinning(true);
   }
@@ -84,6 +126,32 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     setTask(getRandomTask());
     setPhase('task');
   }, []);
+
+  // Auto-spin when it is a bot's turn to spin
+  useEffect(() => {
+    if (phase !== 'between' && phase !== 'ready') return;
+    // Determine who spins next
+    const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
+    const nextSpinner = players[nextSpinnerIndex];
+    if (!nextSpinner?.isBot) return;
+    const timer = setTimeout(() => {
+      startSpin();
+    }, 1000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, targetIndex, spinnerIndex]);
+
+  // Auto-complete bot turns after 2 seconds
+  useEffect(() => {
+    if (phase !== 'task' || !task) return;
+    const currentPlayer = players[targetIndex];
+    if (!currentPlayer?.isBot) return;
+    const timer = setTimeout(() => {
+      handleComplete();
+    }, 5000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, task, targetIndex]);
 
   async function handleComplete() {
     if (!task || roundResolvedRef.current) return;
@@ -177,6 +245,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
         targetIndex={targetIndex}
         spinnerIndex={spinnerIndex}
         onSpinComplete={handleSpinComplete}
+        onAddPlayer={openAddPlayer}
       />
 
       {showSpinButton && (
@@ -184,6 +253,12 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           <button className="btn-gradient" onClick={startSpin}>
             Крутить бутылку
           </button>
+        </div>
+      )}
+
+      {autoSpinCountdown !== null && (
+        <div className="empty-state" style={{ fontSize: '0.95rem' }}>
+          Ход переходит через <strong style={{ color: autoSpinCountdown <= 5 ? '#f44336' : '#fff' }}>{autoSpinCountdown}</strong> сек...
         </div>
       )}
 
@@ -198,6 +273,26 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           toPlayer={target}
           onComplete={handleComplete}
           onSkip={handleSkip}
+          showTimer={true}
+          timerSeconds={players[targetIndex]?.isBot ? 5 : 10}
+          actionsDisabled={!players[targetIndex]?.isMe}
+          onTimeout={() => {
+            if (roundResolvedRef.current) return;
+            roundResolvedRef.current = true;
+            setPhase('between');
+            setTask(null);
+            // Auto-spin after timeout regardless of who spins next
+            setAutoSpinCountdown(10);
+            clearInterval(autoSpinIntervalRef.current);
+            autoSpinIntervalRef.current = setInterval(() => {
+              setAutoSpinCountdown((v) => {
+                if (v <= 1) { clearInterval(autoSpinIntervalRef.current); return null; }
+                return v - 1;
+              });
+            }, 1000);
+            clearTimeout(autoSpinTimerRef.current);
+            autoSpinTimerRef.current = setTimeout(() => startSpin(), 10000);
+          }}
           skipLabel={
             cooldownLeft > 0
               ? `Пропуск через ${Math.ceil(cooldownLeft / 1000)} с`
@@ -258,6 +353,30 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
               </button>
               <button className="btn-ghost" onClick={cancelEndGame}>
                 Продолжить игру
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {addPlayerOpen && (
+        <div className="modal-overlay" onClick={() => setAddPlayerOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-label">Имя игрока</div>
+            <input
+              className="modal-input"
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value.slice(0, 16))}
+              placeholder="Например, Маша"
+              maxLength={16}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmAddPlayer(); if (e.key === 'Escape') setAddPlayerOpen(false); }}
+            />
+            <div className="btn-row">
+              <button className="btn-gradient" onClick={confirmAddPlayer} disabled={!newPlayerName.trim()}>
+                Добавить
+              </button>
+              <button className="btn-ghost" onClick={() => setAddPlayerOpen(false)}>
+                Отмена
               </button>
             </div>
           </div>

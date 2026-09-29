@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import {
   SplitLayout,
@@ -22,12 +22,46 @@ import Profile from './panels/Profile.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
 import { useVKUser } from './hooks/useVKUser.js';
 
+const BOT_1 = { id: 'bot_1', name: 'Маша', isBot: true, score: 0, avatar: '🐱' };
+const BOT_2 = { id: 'bot_2', name: 'Катя', isBot: true, score: 0, avatar: '🦊' };
+
+function clearGameSession() {
+  try {
+    sessionStorage.removeItem('bottle_game_spinnerIndex');
+    sessionStorage.removeItem('bottle_game_targetIndex');
+    sessionStorage.removeItem('bottle_game_task');
+    sessionStorage.removeItem('bottle_game_phase');
+  } catch {}
+}
+
 export default function App() {
   const [story, setStory] = useState('game');
-  const [activePanel, setActivePanel] = useState('home');
-  const [players, setPlayers] = useState([]);
+  // Start directly on the gameplay screen
+  const [activePanel, setActivePanel] = useState('gameplay');
+  const [players, setPlayers] = useState([BOT_1, BOT_2]);
   const [scheme, setScheme] = useState('space_gray');
   const { user } = useVKUser();
+  const userAddedRef = useRef(false);
+
+  // Clear stale session state on first load
+  useEffect(() => {
+    clearGameSession();
+  }, []);
+
+  // Add the VK user as first player once loaded (only once)
+  useEffect(() => {
+    if (!user || userAddedRef.current) return;
+    userAddedRef.current = true;
+    const myName = `${user.first_name} (я)`.slice(0, 16);
+    const me = {
+      id: `vk_${user.id}`,
+      name: myName,
+      photo_100: user.photo_100,
+      isMe: true,
+      score: 0,
+    };
+    setPlayers([me, BOT_1, BOT_2]);
+  }, [user]);
 
   useEffect(() => {
     let unsub;
@@ -47,29 +81,24 @@ export default function App() {
     };
   }, []);
 
-  function clearGameSession() {
-    try {
-      sessionStorage.removeItem('bottle_game_spinnerIndex');
-      sessionStorage.removeItem('bottle_game_targetIndex');
-      sessionStorage.removeItem('bottle_game_task');
-      sessionStorage.removeItem('bottle_game_phase');
-    } catch {}
-  }
-
   function goToGame() {
     setPlayers((ps) => ps.map((p) => ({ ...p, score: 0 })));
     clearGameSession();
+    // Ensure human player spins first
+    const currentPlayers = players.map((p) => ({ ...p, score: 0 }));
+    const meIdx = currentPlayers.findIndex((p) => p.isMe);
+    if (meIdx >= 0) {
+      try { sessionStorage.setItem('bottle_game_spinnerIndex', JSON.stringify(meIdx)); } catch {}
+    }
     setActivePanel('gameplay');
   }
 
   function endGame() {
-    console.log('endGame called -> activePanel = results');
     setActivePanel('results');
   }
 
   function playAgain() {
-    setPlayers((ps) => ps.map((p) => ({ ...p, score: 0 })));
-    clearGameSession();
+    // Go to home screen to let user optionally change players
     setActivePanel('home');
   }
 

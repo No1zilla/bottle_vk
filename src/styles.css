@@ -181,6 +181,19 @@ body {
   z-index: 5;
 }
 .player-chip:has(.player-chip-remove) { z-index: 2; }
+.player-chip-bot { background: #2a2a3a; color: #8899aa; }
+.player-dot-empty {
+  background: transparent;
+  border: 2px dashed rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.35);
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.player-dot-empty:hover {
+  border-color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.7);
+}
 
 /* ========== Home idle bottle ========== */
 .home-bottle-wrap {
@@ -748,4 +761,27 @@ body.modal-open {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+/* ========== Task timer ========== */
+.task-timer {
+  position: relative;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin: 0.5rem 0 0.75rem;
+  overflow: hidden;
+}
+.task-timer-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s linear;
+}
+.task-timer-label {
+  position: absolute;
+  right: 0;
+  top: -1.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
 }
