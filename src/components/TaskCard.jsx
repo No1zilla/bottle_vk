@@ -44,8 +44,11 @@ export default function TaskCard({
   const timerFrac = showTimer ? timeLeft / timerSeconds : 1;
   const timerColor = timeLeft <= 3 ? '#f44336' : timeLeft <= 6 ? '#ff9800' : '#4caf50';
 
+  const BAD_WORDS = ['блять','блядь','сука','пизд','хуй','ебат','ебать','еблан','залупа','мудак','шлюх','говно','пидор','гандон','уебок','уёбок'];
+  const isBad = BAD_WORDS.some((w) => answer.toLowerCase().replace(/ё/g,'е').includes(w.replace(/ё/g,'е')));
+
   function handleSubmit() {
-    if (!answer.trim()) return;
+    if (!answer.trim() || isBad) return;
     onComplete(answer.trim());
   }
 
@@ -83,8 +86,13 @@ export default function TaskCard({
             rows={3}
             maxLength={200}
           />
+          {isBad && (
+            <div style={{ color: '#f44336', fontSize: '0.85rem', margin: '0.25rem 0' }}>
+              Пожалуйста, без матов 🙏
+            </div>
+          )}
           <div className="btn-row">
-            <button className="btn-success" onClick={handleSubmit} disabled={!answer.trim()}>
+            <button className="btn-success" onClick={handleSubmit} disabled={!answer.trim() || isBad}>
               Отправить ответ
             </button>
             <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled}>
