@@ -785,3 +785,53 @@ body.modal-open {
   font-weight: 700;
   line-height: 1;
 }
+
+/* Answer input in TaskCard */
+.answer-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  resize: none;
+  margin: 0.75rem 0 0.5rem;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.answer-input:focus { border-color: rgba(255,255,255,0.4); }
+.answer-input::placeholder { color: rgba(255,255,255,0.35); }
+
+.answer-waiting {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.95rem;
+  padding: 1rem 0 0.5rem;
+}
+
+/* Answer reveal screen */
+.answer-screen {
+  margin: 0 1rem 1rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 1.25rem;
+  animation: taskIn 0.4s ease both;
+}
+.answer-screen-name {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.answer-screen-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}

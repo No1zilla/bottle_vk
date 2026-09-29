@@ -3,6 +3,7 @@ import { Panel } from '@vkontakte/vkui';
 import BottleSpinner from '../components/BottleSpinner.jsx';
 import TaskCard from '../components/TaskCard.jsx';
 import { getRandomTask } from '../data/tasks.js';
+import { getRandomBotAnswer } from '../data/botAnswers.js';
 import { addScore, bumpStats } from '../hooks/useStorage.js';
 import { showBanner, hideBanner, showRewardedAd, getAdCooldownMs } from '../hooks/useAds.js';
 import { useSessionState } from '../hooks/useSessionState.js';
@@ -19,12 +20,13 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   }, [players]);
   const [targetIndex, setTargetIndex] = useSessionState('bottle_game_targetIndex', null);
   const [task, setTask] = useSessionState('bottle_game_task', null);
-  const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | between
+  const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | answer | between
   const [isSpinning, setIsSpinning] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
   const [cooldownLeft, setCooldownLeft] = useState(() => getAdCooldownMs());
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [autoSpinCountdown, setAutoSpinCountdown] = useState(null);
+  const [shownAnswer, setShownAnswer] = useSessionState('bottle_game_answer', null);
   const autoSpinTimerRef = useRef(null);
   const autoSpinIntervalRef = useRef(null);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
@@ -116,6 +118,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     setTask(null);
     roundResolvedRef.current = false;
     setAutoSpinCountdown(null);
+    setShownAnswer(null);
     clearTimeout(autoSpinTimerRef.current);
     clearInterval(autoSpinIntervalRef.current);
     setPhase('spinning');
@@ -155,25 +158,34 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     const currentPlayer = players[targetIndex];
     if (!currentPlayer?.isBot) return;
     const timer = setTimeout(() => {
-      handleCompleteRef.current?.();
+      handleCompleteRef.current?.(getRandomBotAnswer());
     }, 5000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, task, targetIndex]);
 
-  async function handleComplete() {
+  async function handleComplete(answerText) {
     if (!task || roundResolvedRef.current) return;
     roundResolvedRef.current = true;
     if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'task_complete', { level: task?.level });
     const earned = task.points;
-    // Points go to the player the bottle pointed at (who performed the task).
     const playerId = players[targetIndex]?.id;
     setPlayers((ps) =>
       ps.map((p) => (p.id === playerId ? { ...p, score: (p.score || 0) + earned } : p))
     );
-    setPhase('between');
+    // Show answer screen before moving on
+    setShownAnswer(typeof answerText === 'string' ? answerText : getRandomBotAnswer());
+    setPhase('answer');
+    try {
+      await addScore(earned);
+      await bumpStats({ tasks: 1 });
+    } catch {}
+  }
+
+  function handleAnswerNext() {
+    setShownAnswer(null);
     setTask(null);
-    // keep targetIndex around — startSpin uses it to pick the next spinner
+    setPhase('between');
     // If next spinner is human, show countdown before auto-spin
     const nextSpinnerIdx = targetIndex ?? spinnerIndex;
     const nextSpinner = players[nextSpinnerIdx];
@@ -189,10 +201,6 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       clearTimeout(autoSpinTimerRef.current);
       autoSpinTimerRef.current = setTimeout(() => startSpin(), 10000);
     }
-    try {
-      await addScore(earned);
-      await bumpStats({ tasks: 1 });
-    } catch {}
   }
 
   async function handleSkip() {
@@ -236,6 +244,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       sessionStorage.removeItem('bottle_game_targetIndex');
       sessionStorage.removeItem('bottle_game_task');
       sessionStorage.removeItem('bottle_game_phase');
+      sessionStorage.removeItem('bottle_game_answer');
     } catch {}
     if (typeof onEndGame === 'function') {
       onEndGame();
@@ -288,6 +297,16 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
 
       {phase === 'spinning' && (
         <div className="empty-state">Бутылка крутится...</div>
+      )}
+
+      {phase === 'answer' && shownAnswer && (
+        <div className="answer-screen">
+          <div className="answer-screen-name">{target?.name || target?.first_name} отвечает:</div>
+          <div className="answer-screen-text">"{shownAnswer}"</div>
+          <button className="btn-gradient" onClick={handleAnswerNext}>
+            Далее →
+          </button>
+        </div>
       )}
 
       {phase === 'task' && task && (

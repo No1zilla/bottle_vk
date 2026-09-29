@@ -6,11 +6,8 @@ const LEVEL_LABEL = {
   hard: 'Сложно',
 };
 
-const TIMER_SECONDS = 10; // default for humans
-
 export default function TaskCard({
   task,
-  fromPlayer,
   toPlayer,
   onComplete,
   onSkip,
@@ -22,9 +19,11 @@ export default function TaskCard({
   actionsDisabled = false,
 }) {
   const [timeLeft, setTimeLeft] = useState(timerSeconds);
+  const [answer, setAnswer] = useState('');
   const startedRef = useRef(Date.now());
 
   useEffect(() => {
+    setAnswer('');
     if (!showTimer) return;
     startedRef.current = Date.now();
     setTimeLeft(timerSeconds);
@@ -44,6 +43,11 @@ export default function TaskCard({
   const toName = toPlayer?.name || toPlayer?.first_name || '?';
   const timerFrac = showTimer ? timeLeft / timerSeconds : 1;
   const timerColor = timeLeft <= 3 ? '#f44336' : timeLeft <= 6 ? '#ff9800' : '#4caf50';
+
+  function handleSubmit() {
+    if (!answer.trim()) return;
+    onComplete(answer.trim());
+  }
 
   return (
     <div className={`task-card task-card-anim ${task.level}`}>
@@ -69,14 +73,28 @@ export default function TaskCard({
         </div>
       )}
       <p className="task-text">{task.text}</p>
-      <div className="btn-row">
-        <button className="btn-success" onClick={onComplete} disabled={actionsDisabled}>
-          Выполнено
-        </button>
-        <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled || actionsDisabled}>
-          {skipLabel}
-        </button>
-      </div>
+      {!actionsDisabled ? (
+        <>
+          <textarea
+            className="answer-input"
+            placeholder="Напиши свой ответ..."
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value.slice(0, 200))}
+            rows={3}
+            maxLength={200}
+          />
+          <div className="btn-row">
+            <button className="btn-success" onClick={handleSubmit} disabled={!answer.trim()}>
+              Отправить ответ
+            </button>
+            <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled}>
+              {skipLabel}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="answer-waiting">Ждём ответа...</div>
+      )}
     </div>
   );
 }
