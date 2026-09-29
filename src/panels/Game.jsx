@@ -306,7 +306,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       {showSpinButton && (
         <div style={{ padding: '0 1rem' }}>
           <button className="btn-gradient" onClick={startSpin}>
-            Крутить бутылку
+            {spinnerName} крутит бутылку
           </button>
         </div>
       )}
