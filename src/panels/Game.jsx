@@ -341,7 +341,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           onComplete={handleComplete}
           onSkip={handleSkip}
           showTimer={true}
-          timerSeconds={players[targetIndex]?.isBot ? 5 : 10}
+          timerSeconds={players[targetIndex]?.isBot ? 5 : 30}
           actionsDisabled={!players[targetIndex]?.isMe}
           onTimeout={players[targetIndex]?.isBot ? null : () => {
             if (roundResolvedRef.current) return;
