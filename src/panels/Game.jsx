@@ -180,7 +180,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     const currentPlayer = players[targetIndex];
     if (!currentPlayer?.isBot) return;
     const timer = setTimeout(() => {
-      handleCompleteRef.current?.(getRandomBotAnswer());
+      handleCompleteRef.current?.(getRandomBotAnswer(task?.id));
     }, 5000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
