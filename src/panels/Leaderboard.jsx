@@ -9,19 +9,19 @@ const RANK = ['1', '2', '3'];
 
 // Фейковые игроки для заполнения рейтинга — создают эффект живого сообщества
 const FAKE_PLAYERS = [
-  { id: 'fake_1', first_name: 'Александр', last_name: 'Морозов', score: 340 },
-  { id: 'fake_2', first_name: 'Анастасия', last_name: 'Волкова', score: 290 },
-  { id: 'fake_3', first_name: 'Дмитрий', last_name: 'Соколов', score: 250 },
-  { id: 'fake_4', first_name: 'Екатерина', last_name: 'Новикова', score: 210 },
-  { id: 'fake_5', first_name: 'Михаил', last_name: 'Козлов', score: 180 },
-  { id: 'fake_6', first_name: 'Ольга', last_name: 'Лебедева', score: 150 },
-  { id: 'fake_7', first_name: 'Сергей', last_name: 'Попов', score: 120 },
-  { id: 'fake_8', first_name: 'Мария', last_name: 'Кузнецова', score: 90 },
-  { id: 'fake_9', first_name: 'Иван', last_name: 'Петров', score: 60 },
-  { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30 },
+  { id: 'fake_1', first_name: 'Александр', last_name: 'Морозов', score: 340, seed: 'alex-m' },
+  { id: 'fake_2', first_name: 'Анастасия', last_name: 'Волкова', score: 290, seed: 'nastya-v' },
+  { id: 'fake_3', first_name: 'Дмитрий', last_name: 'Соколов', score: 250, seed: 'dima-s' },
+  { id: 'fake_4', first_name: 'Екатерина', last_name: 'Новикова', score: 210, seed: 'kate-n' },
+  { id: 'fake_5', first_name: 'Михаил', last_name: 'Козлов', score: 180, seed: 'misha-k' },
+  { id: 'fake_6', first_name: 'Ольга', last_name: 'Лебедева', score: 150, seed: 'olga-l' },
+  { id: 'fake_7', first_name: 'Никита', last_name: 'Смирнов', score: 120, seed: 'nikita-s' },
+  { id: 'fake_8', first_name: 'Мария', last_name: 'Кузнецова', score: 90, seed: 'masha-k' },
+  { id: 'fake_9', first_name: 'Артём', last_name: 'Васильев', score: 60, seed: 'artem-v' },
+  { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30, seed: 'julia-s' },
 ].map((p) => ({
   ...p,
-  photo_100: `https://ui-avatars.com/api/?name=${encodeURIComponent(p.first_name+'+'+p.last_name)}&background=random&color=fff&size=100&bold=true`,
+  photo_100: `https://api.dicebear.com/9.x/adventurer/svg?seed=${p.seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`,
   isFake: true,
 }));
 
