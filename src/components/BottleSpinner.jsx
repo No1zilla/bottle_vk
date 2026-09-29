@@ -12,6 +12,7 @@ export default function BottleSpinner({
   spinnerIndex,
   onSpinComplete,
   onAddPlayer,
+  restorePhase = false,
 }) {
   const bottleRef = useRef(null);
   const wasSpinningRef = useRef(false);
@@ -59,8 +60,9 @@ export default function BottleSpinner({
   }, [isSpinning]);
 
   // On mount: snap bottle to target position without animation (session restore)
+  // Only runs when there is a real targetIndex from a previous session (phase=task/between)
   useEffect(() => {
-    if (targetIndex == null || !n) return;
+    if (targetIndex == null || !n || !restorePhase) return;
     const targetSlotPos = playerIndexToSlot[targetIndex] ?? targetIndex;
     const angle = (360 / totalSlots) * targetSlotPos;
     setRotation(angle);

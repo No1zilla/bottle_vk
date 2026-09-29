@@ -130,6 +130,9 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   // Auto-spin when it is a bot's turn to spin
   useEffect(() => {
     if (phase !== 'between' && phase !== 'ready') return;
+    // Don't auto-spin until the human player has loaded
+    const hasHuman = players.some((p) => p.isMe);
+    if (!hasHuman) return;
     // Determine who spins next
     const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
     const nextSpinner = players[nextSpinnerIndex];
@@ -139,7 +142,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     }, 1000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, targetIndex, spinnerIndex]);
+  }, [phase, targetIndex, spinnerIndex, players]);
 
   // Auto-complete bot turns after 2 seconds
   useEffect(() => {
@@ -246,6 +249,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
         spinnerIndex={spinnerIndex}
         onSpinComplete={handleSpinComplete}
         onAddPlayer={openAddPlayer}
+        restorePhase={phase === 'task' || phase === 'between'}
       />
 
       {showSpinButton && (
