@@ -19,11 +19,14 @@ const FAKE_PLAYERS = [
   { id: 'fake_8', first_name: 'Мария', last_name: 'Кузнецова', score: 90, seed: 'masha-k' },
   { id: 'fake_9', first_name: 'Артём', last_name: 'Васильев', score: 60, seed: 'artem-v' },
   { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30, seed: 'julia-s' },
-].map((p) => ({
-  ...p,
-  photo_100: `https://api.dicebear.com/9.x/personas/svg?seed=${p.seed}`,
-  isFake: true,
-}));
+].map((p, i) => {
+  const styles = ['personas', 'lorelei', 'notionists', 'fun-emoji', 'adventurer', 'big-smile', 'micah', 'avataaars', 'croodles', 'pixel-art'];
+  return {
+    ...p,
+    photo_100: `https://api.dicebear.com/9.x/${styles[i % styles.length]}/svg?seed=${p.seed}`,
+    isFake: true,
+  };
+});
 
 export default function Leaderboard({ id, currentUser }) {
   const { friends, load } = useVKFriends();
