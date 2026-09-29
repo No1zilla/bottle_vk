@@ -169,6 +169,21 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     setPhase('between');
     setTask(null);
     // keep targetIndex around — startSpin uses it to pick the next spinner
+    // If next spinner is human, show countdown before auto-spin
+    const nextSpinnerIdx = targetIndex ?? spinnerIndex;
+    const nextSpinner = players[nextSpinnerIdx];
+    if (nextSpinner?.isMe) {
+      setAutoSpinCountdown(10);
+      clearInterval(autoSpinIntervalRef.current);
+      autoSpinIntervalRef.current = setInterval(() => {
+        setAutoSpinCountdown((v) => {
+          if (v <= 1) { clearInterval(autoSpinIntervalRef.current); return null; }
+          return v - 1;
+        });
+      }, 1000);
+      clearTimeout(autoSpinTimerRef.current);
+      autoSpinTimerRef.current = setTimeout(() => startSpin(), 10000);
+    }
     try {
       await addScore(earned);
       await bumpStats({ tasks: 1 });
