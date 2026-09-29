@@ -41,7 +41,6 @@ export default function TaskCard({
   }, [task?.id, showTimer, timerSeconds]);
 
   if (!task) return null;
-  const fromName = fromPlayer?.name || fromPlayer?.first_name || '?';
   const toName = toPlayer?.name || toPlayer?.first_name || '?';
   const timerFrac = showTimer ? timeLeft / timerSeconds : 1;
   const timerColor = timeLeft <= 3 ? '#f44336' : timeLeft <= 6 ? '#ff9800' : '#4caf50';
@@ -49,7 +48,7 @@ export default function TaskCard({
   return (
     <div className={`task-card task-card-anim ${task.level}`}>
       <div className="from-to">
-        <b>{fromName}</b> → <b>{toName}</b>
+        <b>{toName}</b> отвечает
       </div>
       <span className={`task-badge ${task.level}`}>
         {LEVEL_LABEL[task.level]} · +{task.points}
