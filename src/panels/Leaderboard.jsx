@@ -54,13 +54,9 @@ export default function Leaderboard({ id, currentUser }) {
   if (myEntry && !friendsList.some((f) => f.id === myEntry.id)) {
     friendsList.push(myEntry);
   }
-  // Merge with fake players, but don't show fakes that are outscored by real entries
-  const maxRealScore = Math.max(...friendsList.map((f) => f.score || 0), 0);
-  const filteredFakes = FAKE_PLAYERS.filter((f) => f.score > maxRealScore || friendsList.length === 0);
-  const combined = [...friendsList, ...filteredFakes];
+  const combined = [...friendsList, ...FAKE_PLAYERS];
   combined.sort((a, b) => (b.score || 0) - (a.score || 0));
   const friendsList2 = combined;
-  friendsList.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   return (
     <Panel id={id}>
