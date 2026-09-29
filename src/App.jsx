@@ -23,14 +23,14 @@ import OfflineBanner from './components/OfflineBanner.jsx';
 import { useVKUser } from './hooks/useVKUser.js';
 
 const BOT_POOL = [
-  { name: 'Анастасия', seed: 'nastya-v' },
-  { name: 'Екатерина', seed: 'kate-n' },
-  { name: 'Ольга', seed: 'olga-l' },
-  { name: 'Мария', seed: 'masha-k' },
-  { name: 'Александр', seed: 'alex-m' },
-  { name: 'Дмитрий', seed: 'dima-s' },
-  { name: 'Никита', seed: 'nikita-s' },
-  { name: 'Артём', seed: 'artem-v' },
+  { name: 'Анастасия', seed: 'nastya-v', style: 'personas' },
+  { name: 'Екатерина', seed: 'kate-n', style: 'lorelei' },
+  { name: 'Ольга', seed: 'olga-l', style: 'notionists' },
+  { name: 'Мария', seed: 'masha-k', style: 'fun-emoji' },
+  { name: 'Александр', seed: 'alex-m', style: 'adventurer' },
+  { name: 'Дмитрий', seed: 'dima-s', style: 'big-smile' },
+  { name: 'Никита', seed: 'nikita-s', style: 'micah' },
+  { name: 'Артём', seed: 'artem-v', style: 'avataaars' },
 ];
 function pickBots() {
   const shuffled = [...BOT_POOL].sort(() => Math.random() - 0.5);
@@ -39,7 +39,7 @@ function pickBots() {
     name: b.name,
     isBot: true,
     score: 0,
-    photo_100: `https://api.dicebear.com/9.x/personas/svg?seed=${b.seed}`,
+    photo_100: `https://api.dicebear.com/9.x/${b.style}/svg?seed=${b.seed}`,
   }));
 }
 
