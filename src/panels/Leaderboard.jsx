@@ -21,7 +21,7 @@ const FAKE_PLAYERS = [
   { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30, seed: 'julia-s' },
 ].map((p) => ({
   ...p,
-  photo_100: `https://api.dicebear.com/9.x/adventurer/svg?seed=${p.seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`,
+  photo_100: `https://api.dicebear.com/9.x/personas/svg?seed=${p.seed}`,
   isFake: true,
 }));
 
