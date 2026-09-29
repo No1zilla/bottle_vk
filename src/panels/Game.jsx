@@ -280,7 +280,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
   const nextSpinner = players[nextSpinnerIndex];
   const showSpinButton = (phase === 'ready' || phase === 'between') && nextSpinner?.isMe;
-  const spinnerName = spinner?.name || spinner?.first_name || '';
+  const spinnerName = nextSpinner?.name || nextSpinner?.first_name || spinner?.name || spinner?.first_name || '';
   const spinnerScore = spinner?.score || 0;
 
   return (
