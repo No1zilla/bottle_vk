@@ -97,13 +97,14 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
       fromIndex = targetIndex;
       setSpinnerIndex(targetIndex);
     }
-    // Ensure human player gets picked at least every other turn
     const humanIndex = players.findIndex((p) => p.isMe);
     let t;
-    if (humanIndex >= 0 && humanIndex !== fromIndex) {
+    // First spin always lands on the human player
+    if (phase === 'ready' && humanIndex >= 0) {
+      t = humanIndex;
+    } else if (humanIndex >= 0 && humanIndex !== fromIndex) {
       // 50% chance to land on human player to keep them engaged
       t = Math.random() < 0.5 ? humanIndex : Math.floor(Math.random() * players.length);
-      // fallback: if we accidentally picked fromIndex, pick human
       if (t === fromIndex) t = humanIndex;
     } else {
       t = Math.floor(Math.random() * players.length);
