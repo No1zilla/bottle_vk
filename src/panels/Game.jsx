@@ -144,13 +144,17 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, targetIndex, spinnerIndex, players]);
 
-  // Auto-complete bot turns after 2 seconds
+  // Keep a stable ref to handleComplete so the bot timer never uses a stale closure
+  const handleCompleteRef = useRef(null);
+  handleCompleteRef.current = handleComplete;
+
+  // Auto-complete bot turns after 5 seconds
   useEffect(() => {
     if (phase !== 'task' || !task) return;
     const currentPlayer = players[targetIndex];
     if (!currentPlayer?.isBot) return;
     const timer = setTimeout(() => {
-      handleComplete();
+      handleCompleteRef.current?.();
     }, 5000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps

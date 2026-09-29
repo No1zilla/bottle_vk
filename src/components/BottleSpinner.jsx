@@ -39,7 +39,7 @@ export default function BottleSpinner({
     return map;
   }, [shuffledOrder, n]);
 
-  const [rotation, setRotation] = useState(-90);
+  const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
     if (!isSpinning || targetIndex == null || !n) return;
