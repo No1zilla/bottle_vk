@@ -125,7 +125,10 @@ export default function Results({ id, players, onPlayAgain }) {
         <button className="btn-ghost" onClick={handleShare}>
           Поделиться в ВКонтакте
         </button>
-        <button className="btn-gradient" onClick={onPlayAgain}>
+        <button className="btn-gradient" onClick={() => {
+            if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'play_again');
+            onPlayAgain();
+          }}>
           Играть снова
         </button>
       </div>

@@ -191,7 +191,13 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
   async function handleComplete(answerText) {
     if (!task || roundResolvedRef.current) return;
     roundResolvedRef.current = true;
-    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'task_complete', { level: task?.level });
+    const isHuman = players[targetIndex]?.isMe;
+    if (typeof window.ym === 'function') {
+      window.ym(113107611, 'reachGoal', 'task_complete', { level: task?.level });
+      if (isHuman && typeof answerText === 'string' && answerText.length > 0) {
+        window.ym(113107611, 'reachGoal', 'answer_submit', { level: task?.level, answer_length: answerText.length });
+      }
+    }
     const earned = task.points;
     const playerId = players[targetIndex]?.id;
     setPlayers((ps) =>
@@ -346,6 +352,7 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
           onTimeout={players[targetIndex]?.isBot ? null : () => {
             if (roundResolvedRef.current) return;
             roundResolvedRef.current = true;
+            if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'answer_timeout', { level: task?.level });
             setPhase('between');
             setTask(null);
             // Auto-spin after timeout regardless of who spins next

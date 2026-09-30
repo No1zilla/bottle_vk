@@ -47,22 +47,34 @@ export async function showRewardedAd() {
     // 30s cooldown still active — refuse to show another ad (rule 5.1.5.2)
     return false;
   }
+  const ym = typeof window.ym === 'function' ? window.ym.bind(window, 113107611, 'reachGoal') : null;
   try {
     const check = await bridge.send('VKWebAppCheckNativeAds', {
       ad_format: 'reward',
     });
-    if (!check?.result) return false;
+    if (!check?.result) {
+      ym?.('ad_check_failed');
+      return false;
+    }
   } catch (e) {
+    ym?.('ad_check_failed');
     return false;
   }
+  ym?.('ad_requested');
   try {
     const res = await bridge.send('VKWebAppShowNativeAds', {
       ad_format: 'reward',
     });
     const shown = Boolean(res?.result);
-    if (shown) markAdShown();
+    if (shown) {
+      markAdShown();
+      ym?.('ad_shown');
+    } else {
+      ym?.('ad_failed');
+    }
     return shown;
   } catch (e) {
+    ym?.('ad_failed');
     return false;
   }
 }
