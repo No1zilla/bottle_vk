@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 import {
   SplitLayout,
@@ -14,73 +14,23 @@ import {
   Icon28FavoriteOutline,
   Icon28UserCircleOutline,
 } from '@vkontakte/icons';
-import Home from './panels/Home.jsx';
 import Game from './panels/Game.jsx';
 import Results from './panels/Results.jsx';
 import Leaderboard from './panels/Leaderboard.jsx';
 import Profile from './panels/Profile.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
 import { useVKUser } from './hooks/useVKUser.js';
-
-const BOT_POOL = [
-  { name: 'Анастасия', seed: 'nastya-v', style: 'personas' },
-  { name: 'Екатерина', seed: 'kate-n', style: 'lorelei' },
-  { name: 'Ольга', seed: 'olga-l', style: 'notionists' },
-  { name: 'Мария', seed: 'masha-k', style: 'fun-emoji' },
-  { name: 'Александр', seed: 'alex-m', style: 'adventurer' },
-  { name: 'Дмитрий', seed: 'dima-s', style: 'big-smile' },
-  { name: 'Никита', seed: 'nikita-s', style: 'micah' },
-  { name: 'Артём', seed: 'artem-v', style: 'avataaars' },
-];
-function pickBots() {
-  const shuffled = [...BOT_POOL].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 2).map((b, i) => ({
-    id: 'bot_' + (i + 1),
-    name: b.name,
-    isBot: true,
-    score: 0,
-    photo_100: `https://api.dicebear.com/9.x/${b.style}/svg?seed=${b.seed}`,
-  }));
-}
-
-
-function clearGameSession() {
-  try {
-    sessionStorage.removeItem('bottle_game_spinnerIndex');
-    sessionStorage.removeItem('bottle_game_targetIndex');
-    sessionStorage.removeItem('bottle_game_task');
-    sessionStorage.removeItem('bottle_game_phase');
-  } catch {}
-}
+import { ServerProvider } from './lib/server.jsx';
 
 export default function App() {
   const [story, setStory] = useState('game');
-  // Start directly on the gameplay screen
   const [activePanel, setActivePanel] = useState('gameplay');
-  const [players, setPlayers] = useState(() => pickBots());
+  // Итоговая таблица стола, из-за которого вышли
+  const [finalPlayers, setFinalPlayers] = useState([]);
+  // Новый ключ — новый вход за стол при «Играть снова»
+  const [gameKey, setGameKey] = useState(0);
   const [scheme, setScheme] = useState('space_gray');
   const { user } = useVKUser();
-  const userAddedRef = useRef(false);
-
-  // Clear stale session state on first load
-  useEffect(() => {
-    clearGameSession();
-  }, []);
-
-  // Add the VK user as first player once loaded (only once)
-  useEffect(() => {
-    if (!user || userAddedRef.current) return;
-    userAddedRef.current = true;
-    const myName = `${user.first_name} (я)`.slice(0, 16);
-    const me = {
-      id: `vk_${user.id}`,
-      name: myName,
-      photo_100: user.photo_100,
-      isMe: true,
-      score: 0,
-    };
-    setPlayers((ps) => { const bots = ps.filter((p) => p.isBot); return [me, ...bots]; });
-  }, [user]);
 
   useEffect(() => {
     let unsub;
@@ -100,25 +50,14 @@ export default function App() {
     };
   }, []);
 
-  function goToGame() {
-    setPlayers((ps) => ps.map((p) => ({ ...p, score: 0 })));
-    clearGameSession();
-    // Ensure human player spins first
-    const currentPlayers = players.map((p) => ({ ...p, score: 0 }));
-    const meIdx = currentPlayers.findIndex((p) => p.isMe);
-    if (meIdx >= 0) {
-      try { sessionStorage.setItem('bottle_game_spinnerIndex', JSON.stringify(meIdx)); } catch {}
-    }
-    setActivePanel('gameplay');
-  }
-
-  function endGame() {
+  function endGame(players) {
+    setFinalPlayers(players);
     setActivePanel('results');
   }
 
   function playAgain() {
-    // Go to home screen to let user optionally change players
-    setActivePanel('home');
+    setGameKey((k) => k + 1);
+    setActivePanel('gameplay');
   }
 
   const appearance =
@@ -127,6 +66,7 @@ export default function App() {
       : 'light';
 
   return (
+    <ServerProvider>
     <ConfigProvider appearance={appearance}>
       <SplitLayout>
         <SplitCol>
@@ -160,24 +100,12 @@ export default function App() {
             }
           >
             <View id="game" activePanel={activePanel}>
-              <Home
-                id="home"
-                players={players}
-                setPlayers={setPlayers}
-                currentUser={user}
-                onStart={goToGame}
-              />
-              <Game
-                id="gameplay"
-                players={players}
-                setPlayers={setPlayers}
-                onEndGame={endGame}
-              />
-              <Results id="results" players={players} onPlayAgain={playAgain} />
+              <Game key={gameKey} id="gameplay" onEndGame={endGame} />
+              <Results id="results" players={finalPlayers} onPlayAgain={playAgain} />
             </View>
 
             <View id="leaderboard" activePanel="leaderboard">
-              <Leaderboard id="leaderboard" currentUser={user} />
+              <Leaderboard id="leaderboard" />
             </View>
 
             <View id="profile" activePanel="profile">
@@ -187,5 +115,6 @@ export default function App() {
         </SplitCol>
       </SplitLayout>
     </ConfigProvider>
+    </ServerProvider>
   );
 }

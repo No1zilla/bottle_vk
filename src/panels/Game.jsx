@@ -1,93 +1,91 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Panel } from '@vkontakte/vkui';
 import BottleSpinner from '../components/BottleSpinner.jsx';
 import TaskCard from '../components/TaskCard.jsx';
-import { getRandomTask } from '../data/tasks.js';
-import { getRandomBotAnswer } from '../data/botAnswers.js';
-import { addScore, bumpStats } from '../hooks/useStorage.js';
-import { showBanner, hideBanner, showRewardedAd, getAdCooldownMs } from '../hooks/useAds.js';
-import { useSessionState } from '../hooks/useSessionState.js';
+import AnswerSwipeCard from '../components/AnswerSwipeCard.jsx';
+import TableFeed from '../components/TableFeed.jsx';
+import { inviteFriend } from '../lib/invite.js';
 
-function AnswerScreen({ answer, playerName, onNext }) {
-  const [countdown, setCountdown] = React.useState(10);
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown((v) => {
-        if (v <= 1) { clearInterval(interval); onNext(); return 0; }
-        return v - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-  return (
-    <div className="answer-screen">
-      <div className="answer-screen-name">{playerName} отвечает:</div>
-      <div className="answer-screen-text">"{answer}"</div>
-      <button className="btn-gradient" onClick={onNext}>
-        Далее <span style={{ opacity: 0.6, fontSize: '0.9em' }}>({countdown})</span>
-      </button>
-    </div>
-  );
+const CHAT_KEEP = 50; // столько сообщений держим на экране, как история на сервере
+import { showBanner, hideBanner, showRewardedAd, getAdCooldownMs } from '../hooks/useAds.js';
+import { useServer, useSocketEvent, CURRENCY } from '../lib/server.jsx';
+
+const goal = (name, params) => {
+  if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', name, params);
+};
+
+// Секунды до дедлайна по часам сервера (разница часов учтена в offset)
+function useSecondsLeft(deadline, offset) {
+  const calc = () => (deadline ? Math.max(0, Math.ceil((deadline - (Date.now() + offset)) / 1000)) : null);
+  const [left, setLeft] = useState(calc);
+  useEffect(() => {
+    setLeft(calc());
+    if (!deadline) return;
+    const id = setInterval(() => setLeft(calc()), 250);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deadline, offset]);
+  return left;
 }
 
-export default function Game({ id, players, setPlayers, onEndGame }) {
-  const [spinnerIndex, setSpinnerIndex] = useSessionState('bottle_game_spinnerIndex', 0);
-
-  // Whenever players list changes and we're in ready phase, ensure human spins first
-  useEffect(() => {
-    if (phase !== 'ready') return;
-    const meIdx = players.findIndex((p) => p.isMe);
-    if (meIdx >= 0) setSpinnerIndex(meIdx);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [players]);
-  const [targetIndex, setTargetIndex] = useSessionState('bottle_game_targetIndex', null);
-  const [task, setTask] = useSessionState('bottle_game_task', null);
-  const [phase, setPhase] = useSessionState('bottle_game_phase', 'ready'); // ready | spinning | task | answer | between
-  const [isSpinning, setIsSpinning] = useState(false);
+export default function Game({ id, onEndGame }) {
+  const { status, me, wallet, call } = useServer();
+  const [table, setTable] = useState(null);
+  const [chat, setChat] = useState([]);
+  const [blocked, setBlocked] = useState(() => new Set()); // кого я заблокировал: их ответы и сообщения скрыты
+  const [confirmBlock, setConfirmBlock] = useState(null); // id игрока, которого собираемся заблокировать
+  const [offset, setOffset] = useState(0);
+  const [error, setError] = useState('');
   const [adLoading, setAdLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [cooldownLeft, setCooldownLeft] = useState(() => getAdCooldownMs());
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
-  const [autoSpinCountdown, setAutoSpinCountdown] = useState(null);
-  const [shownAnswer, setShownAnswer] = useSessionState('bottle_game_answer', null);
-  const autoSpinTimerRef = useRef(null);
-  const autoSpinIntervalRef = useRef(null);
-  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const roundResolvedRef = useRef(false);
+  const errorTimer = useRef(null);
+  const spinSent = useRef(false); // двойное нажатие на бутылку не шлёт второй запрос
 
-  // Tick down the ad cooldown timer while it's active
-  useEffect(() => {
-    if (cooldownLeft <= 0) return;
-    const tick = () => setCooldownLeft(getAdCooldownMs());
-    tick();
-    const id = setInterval(tick, 500);
-    return () => clearInterval(id);
-  }, [cooldownLeft > 0]);
+  const applyState = (s) => {
+    setOffset(s.serverNow - Date.now());
+    setTable(s);
+  };
+  const flash = (msg) => {
+    setError(msg);
+    clearTimeout(errorTimer.current);
+    errorTimer.current = setTimeout(() => setError(''), 3000);
+  };
 
-  // If we were in the middle of a spin animation when the user left,
-  // restore to the resulting task screen on mount.
+  // Садимся за стол при входе и после переподключения (сервер мог перезапуститься)
   useEffect(() => {
-    if (phase === 'spinning') {
-      setPhase('task');
-      if (!task) setTask(getRandomTask());
-    }
+    if (status !== 'online') return;
+    call('tasks:join').then((res) => {
+      if (res.ok) {
+        applyState(res.state);
+        setChat(res.chat || []);
+        setBlocked(new Set(res.blocked || []));
+        goal('game_start', { players: res.state.seats.filter(Boolean).length });
+      } else flash(res.message || 'Не удалось сесть за стол');
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [status]);
+
+  useSocketEvent('tasks:state', applyState);
+  useSocketEvent('tasks:chat', (msg) => setChat((c) => [...c, msg].slice(-CHAT_KEEP)));
 
   useEffect(() => {
     showBanner();
-    return () => {
-      hideBanner();
-    };
+    return () => hideBanner();
   }, []);
 
-  // Lock body scroll while the end-game confirmation modal is open + ESC closes it
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const tick = () => setCooldownLeft(getAdCooldownMs());
+    const t = setInterval(tick, 500);
+    return () => clearInterval(t);
+  }, [cooldownLeft > 0]);
+
   useEffect(() => {
     if (!confirmEndOpen) return;
     document.body.classList.add('modal-open');
-    const onKey = (e) => {
-      if (e.key === 'Escape') setConfirmEndOpen(false);
-    };
+    const onKey = (e) => e.key === 'Escape' && setConfirmEndOpen(false);
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.classList.remove('modal-open');
@@ -95,362 +93,288 @@ export default function Game({ id, players, setPlayers, onEndGame }) {
     };
   }, [confirmEndOpen]);
 
-  function openAddPlayer() {
-    if (isSpinning || phase === 'spinning') return;
-    setNewPlayerName('');
-    setAddPlayerOpen(true);
-  }
+  const secondsLeft = useSecondsLeft(table?.deadline, offset);
+  // Длительность ответа считаем один раз на раунд, чтобы полоска таймера не перезапускалась.
+  // Прямо от дедлайна: secondsLeft в этот момент ещё показывает остаток прошлой фазы (≈0)
+  const answerSeconds = useMemo(
+    () =>
+      table?.phase === 'answer' && table.deadline
+        ? Math.max(1, Math.round((table.deadline - (Date.now() + offset)) / 1000))
+        : 30,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table?.round, table?.phase]
+  );
 
-  function confirmAddPlayer() {
-    const trimmed = newPlayerName.trim().slice(0, 16);
-    if (!trimmed || !/\p{L}/u.test(trimmed)) return;
-    setPlayers((ps) => [
-      ...ps,
-      { id: 'p_' + Date.now(), name: trimmed, score: 0 },
-    ]);
-    setAddPlayerOpen(false);
-  }
-
-  function startSpin() {
-    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', phase === 'ready' ? 'game_start' : 'round_spin', { players: players.length });
-    if (players.length < 2) return;
-    // After the previous round the player who got the task (targetIndex) becomes
-    // the next spinner. The very first spin just uses the current spinnerIndex.
-    let fromIndex = spinnerIndex;
-    if (phase === 'between' && targetIndex != null) {
-      fromIndex = targetIndex;
-      setSpinnerIndex(targetIndex);
-    }
-    const humanIndex = players.findIndex((p) => p.isMe);
-    let t;
-    // First spin always lands on the human player
-    if (phase === 'ready' && humanIndex >= 0) {
-      t = humanIndex;
-    } else if (humanIndex >= 0 && humanIndex !== fromIndex) {
-      // 50% chance to land on human player to keep them engaged
-      t = Math.random() < 0.5 ? humanIndex : Math.floor(Math.random() * players.length);
-      if (t === fromIndex) t = humanIndex;
-    } else {
-      t = Math.floor(Math.random() * players.length);
-      while (t === fromIndex && players.length > 1) {
-        t = Math.floor(Math.random() * players.length);
-      }
-    }
-    setTargetIndex(t);
-    setTask(null);
-    roundResolvedRef.current = false;
-    setAutoSpinCountdown(null);
-    setShownAnswer(null);
-    clearTimeout(autoSpinTimerRef.current);
-    clearInterval(autoSpinIntervalRef.current);
-    setPhase('spinning');
-    setIsSpinning(true);
-  }
-
-  const handleSpinComplete = useCallback(() => {
-    setIsSpinning(false);
-    setTask(getRandomTask());
-    setPhase('task');
-  }, []);
-
-  // Auto-spin when it is a bot's turn to spin
-  useEffect(() => {
-    if (phase !== 'between' && phase !== 'ready') return;
-    // Don't auto-spin until the human player has loaded
-    const hasHuman = players.some((p) => p.isMe);
-    if (!hasHuman) return;
-    // Determine who spins next
-    const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
-    const nextSpinner = players[nextSpinnerIndex];
-    if (!nextSpinner?.isBot) return;
-    const timer = setTimeout(() => {
-      startSpin();
-    }, 1000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, targetIndex, spinnerIndex, players]);
-
-  // Keep a stable ref to handleComplete so the bot timer never uses a stale closure
-  const handleCompleteRef = useRef(null);
-  handleCompleteRef.current = handleComplete;
-
-  // Auto-complete bot turns after 5 seconds
-  useEffect(() => {
-    if (phase !== 'task' || !task) return;
-    const currentPlayer = players[targetIndex];
-    if (!currentPlayer?.isBot) return;
-    const taskId = task.id; // capture before timeout
-    const botAnswer = getRandomBotAnswer(taskId);
-    const timer = setTimeout(() => {
-      handleCompleteRef.current?.(botAnswer);
-    }, 5000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, task, targetIndex]);
-
-  async function handleComplete(answerText) {
-    if (!task || roundResolvedRef.current) return;
-    roundResolvedRef.current = true;
-    const isHuman = players[targetIndex]?.isMe;
-    if (typeof window.ym === 'function') {
-      window.ym(113107611, 'reachGoal', 'task_complete', { level: task?.level });
-      if (isHuman && typeof answerText === 'string' && answerText.length > 0) {
-        window.ym(113107611, 'reachGoal', 'answer_submit', { level: task?.level, answer_length: answerText.length });
-      }
-    }
-    const earned = task.points;
-    const playerId = players[targetIndex]?.id;
-    setPlayers((ps) =>
-      ps.map((p) => (p.id === playerId ? { ...p, score: (p.score || 0) + earned } : p))
+  if (!table || !me) {
+    return (
+      <Panel id={id}>
+        <div className="empty-state" style={{ marginTop: '3rem' }}>
+          {status === 'error' ? 'Не удалось войти. Перезапустите приложение.' : 'Ищем стол…'}
+        </div>
+        {error && <div className="empty-state">{error}</div>}
+      </Panel>
     );
-    // Show answer screen before moving on
-    setShownAnswer(typeof answerText === 'string' ? answerText : getRandomBotAnswer());
-    setPhase('answer');
-    try {
-      await addScore(earned);
-      await bumpStats({ tasks: 1 });
-    } catch {}
   }
 
-  function handleAnswerNext() {
-    setShownAnswer(null);
-    setTask(null);
-    setPhase('between');
-    // If next spinner is human, show countdown before auto-spin
-    const nextSpinnerIdx = targetIndex ?? spinnerIndex;
-    const nextSpinner = players[nextSpinnerIdx];
-    if (nextSpinner?.isMe) {
-      setAutoSpinCountdown(10);
-      clearInterval(autoSpinIntervalRef.current);
-      autoSpinIntervalRef.current = setInterval(() => {
-        setAutoSpinCountdown((v) => {
-          if (v <= 1) { clearInterval(autoSpinIntervalRef.current); return null; }
-          return v - 1;
-        });
-      }, 1000);
-      clearTimeout(autoSpinTimerRef.current);
-      autoSpinTimerRef.current = setTimeout(() => startSpin(), 10000);
-    }
+  const seats = table.seats;
+  const spinner = seats[table.turn];
+  const target = table.target != null ? seats[table.target] : null;
+  const myTurn = table.phase === 'spin' && spinner?.id === me.id;
+  const iAnswer = table.phase === 'answer' && target?.id === me.id;
+  const players = seats.filter(Boolean);
+
+  async function claimBonus() {
+    const res = await call('bonus:claim');
+    if (res.ok) {
+      flash(`+${res.amount} ${CURRENCY} — ежедневный бонус`);
+      goal('bonus_claim', { amount: res.amount });
+    } else flash(res.message || 'Не получилось');
   }
 
-  async function handleSkip() {
-    if (roundResolvedRef.current || adLoading || cooldownLeft > 0) return;
+  async function toggleBlock(id) {
+    const unblock = blocked.has(id);
+    const res = await call(unblock ? 'user:unblock' : 'user:block', { id });
+    setConfirmBlock(null);
+    if (!res.ok) return flash(res.message || 'Не получилось');
+    setBlocked((b) => {
+      const next = new Set(b);
+      unblock ? next.delete(id) : next.add(id);
+      return next;
+    });
+    flash(unblock ? 'Игрок разблокирован' : 'Игрок заблокирован: его ответы и сообщения скрыты');
+    goal(unblock ? 'player_unblock' : 'player_block');
+  }
+
+  async function spin() {
+    if (spinSent.current) return;
+    spinSent.current = true;
+    goal('round_spin', { players: players.length });
+    const res = await call('tasks:spin');
+    spinSent.current = false;
+    if (!res.ok) flash(res.message || 'Не получилось');
+  }
+
+  async function answer(text) {
+    setSubmitting(true);
+    const res = await call('tasks:answer', { text });
+    setSubmitting(false);
+    if (res.ok) goal('answer_submit', { level: table.task?.level, answer_length: text.length });
+    else flash(res.message || 'Ответ не отправлен');
+  }
+
+  async function skip() {
+    if (adLoading || cooldownLeft > 0) return;
     setAdLoading(true);
     try {
-      // Show rewarded ad before granting skip. If ads aren't available
-      // (running outside VK, slot not approved yet, etc.) — skip silently.
-      // Guard against the bridge never resolving (e.g. ad closed by user
-      // outside VK's standard flow) — fall through after 8 seconds.
-      await Promise.race([
-        showRewardedAd(),
-        new Promise((resolve) => setTimeout(resolve, 8000)),
-      ]);
+      // Реклама за пропуск. Вне ВК или без слота — пропускаем без неё, но не ждём дольше 8 с
+      await Promise.race([showRewardedAd(), new Promise((r) => setTimeout(r, 8000))]);
     } catch {
-      // swallow — we always want to release the UI
+      // всегда отпускаем интерфейс
     } finally {
       setAdLoading(false);
       setCooldownLeft(getAdCooldownMs());
     }
-    if (roundResolvedRef.current) return;
-    roundResolvedRef.current = true;
-    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'task_skip');
-    setPhase('between');
-    setTask(null);
-    // keep targetIndex so the next spinner is the player who got the task
+    const res = await call('tasks:skip');
+    if (res.ok) goal('task_skip');
   }
 
-  function requestEndGame() {
-    setConfirmEndOpen(true);
-  }
-  function cancelEndGame() {
+  async function endGame() {
     setConfirmEndOpen(false);
-  }
-  function handleEndGame() {
-    setConfirmEndOpen(false);
-    bumpStats({ games: 1 }).catch(() => {});
-    if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'game_end', { players: players.length });
-    try {
-      sessionStorage.removeItem('bottle_game_spinnerIndex');
-      sessionStorage.removeItem('bottle_game_targetIndex');
-      sessionStorage.removeItem('bottle_game_task');
-      sessionStorage.removeItem('bottle_game_phase');
-      sessionStorage.removeItem('bottle_game_answer');
-    } catch {}
-    if (typeof onEndGame === 'function') {
-      onEndGame();
-    }
+    goal('game_end', { players: players.length });
+    await call('tasks:leave');
+    onEndGame(players.map((p) => ({ ...p, photo_100: p.photo, isMe: p.id === me.id })));
   }
 
-  const spinner = players[spinnerIndex];
-  const target = targetIndex != null ? players[targetIndex] : null;
-  const nextSpinnerIndex = (phase === 'between' && targetIndex != null) ? targetIndex : spinnerIndex;
-  const nextSpinner = players[nextSpinnerIndex];
-  const showSpinButton = (phase === 'ready' || phase === 'between') && nextSpinner?.isMe;
-  const spinnerName = nextSpinner?.name || nextSpinner?.first_name || spinner?.name || spinner?.first_name || '';
-  const spinnerScore = spinner?.score || 0;
+  let statusLine = null;
+  if (table.phase === 'waiting') statusLine = 'Ждём второго игрока…';
+  else if (table.phase === 'spinning') statusLine = 'Бутылка крутится…';
+  else if (table.phase === 'spin' && !myTurn) statusLine = `Крутит ${spinner?.name || ''} · ${secondsLeft ?? ''} с`;
 
   return (
     <Panel id={id}>
       <div className="banner" style={{ marginTop: '1rem' }}>
         <div>
           <div className="banner-label">Сейчас крутит</div>
-          <div className="banner-value">
-            {spinnerName}{' '}
-            <span className="banner-score" style={{ fontSize: '1rem' }}>
-              · {spinnerScore} очков
-            </span>
-          </div>
+          <div className="banner-value">{myTurn ? 'Вы' : spinner?.name || '—'}</div>
         </div>
+        {wallet && (
+          <div className="banner-score" title="Ваши сердечки" style={{ flex: 'none', fontSize: '1.125rem', whiteSpace: 'nowrap' }}>
+            {wallet.coins} {CURRENCY}
+          </div>
+        )}
       </div>
 
-      <BottleSpinner
-        players={players}
-        isSpinning={isSpinning}
-        targetIndex={targetIndex}
-        spinnerIndex={spinnerIndex}
-        onSpinComplete={handleSpinComplete}
-        onAddPlayer={openAddPlayer}
-        restorePhase={phase === 'task' || phase === 'between'}
-      />
-
-      {showSpinButton && (
-        <div style={{ padding: '0 1rem' }}>
-          <button className="btn-gradient" onClick={startSpin}>
-            {spinnerName} крутит бутылку
+      {wallet?.bonusAvailable && (
+        <div style={{ padding: '0 1rem', marginTop: '0.75rem' }}>
+          <button className="btn-success" onClick={claimBonus}>
+            🎁 Забрать ежедневный бонус
           </button>
         </div>
       )}
 
-      {autoSpinCountdown !== null && (
-        <div className="empty-state" style={{ fontSize: '0.95rem' }}>
-          Ход переходит через <strong style={{ color: autoSpinCountdown <= 5 ? '#f44336' : '#fff' }}>{autoSpinCountdown}</strong> сек...
+      <BottleSpinner
+        seats={seats}
+        isSpinning={table.phase === 'spinning'}
+        targetIndex={table.target}
+        spinnerIndex={table.turn}
+        restorePhase={table.phase === 'answer' || table.phase === 'result'}
+        onSpin={myTurn ? spin : undefined}
+        onInvite={() => inviteFriend(flash)}
+      />
+
+      {table.phase === 'spin' && table.missed && (
+        <div className="empty-state" style={{ padding: '0.25rem 1.5rem 0.875rem' }}>
+          {table.missed.name} {table.missed.reason === 'skipped' ? 'пропускает задание' : 'не успел(а) ответить'}
         </div>
       )}
 
-      {phase === 'spinning' && (
-        <div className="empty-state">Бутылка крутится...</div>
+      {myTurn && (
+        <div style={{ padding: '0 1rem', marginBottom: '0.75rem' }}>
+          <button className="btn-gradient" onClick={spin}>
+            Крутить бутылку ({secondsLeft})
+          </button>
+        </div>
       )}
 
-      {phase === 'answer' && shownAnswer && (
-        <AnswerScreen
-          answer={shownAnswer}
-          playerName={target?.name || target?.first_name}
-          onNext={handleAnswerNext}
-        />
-      )}
+      {statusLine && <div className="empty-state">{statusLine}</div>}
+      {status !== 'online' && <div className="empty-state">Нет связи с сервером, переподключаемся…</div>}
+      {error && <div className="empty-state">{error}</div>}
 
-      {phase === 'task' && task && (
+      {table.phase === 'answer' && table.task && (
         <TaskCard
-          task={task}
-          fromPlayer={spinner}
+          key={table.round}
+          task={table.task}
           toPlayer={target}
-          onComplete={handleComplete}
-          onSkip={handleSkip}
-          showTimer={true}
-          timerSeconds={players[targetIndex]?.isBot ? 5 : 30}
-          actionsDisabled={!players[targetIndex]?.isMe}
-          onTimeout={players[targetIndex]?.isBot ? null : () => {
-            if (roundResolvedRef.current) return;
-            roundResolvedRef.current = true;
-            if (typeof window.ym === 'function') window.ym(113107611, 'reachGoal', 'answer_timeout', { level: task?.level });
-            setPhase('between');
-            setTask(null);
-            // Auto-spin after timeout regardless of who spins next
-            setAutoSpinCountdown(10);
-            clearInterval(autoSpinIntervalRef.current);
-            autoSpinIntervalRef.current = setInterval(() => {
-              setAutoSpinCountdown((v) => {
-                if (v <= 1) { clearInterval(autoSpinIntervalRef.current); return null; }
-                return v - 1;
-              });
-            }, 1000);
-            clearTimeout(autoSpinTimerRef.current);
-            autoSpinTimerRef.current = setTimeout(() => startSpin(), 10000);
-          }}
+          onComplete={answer}
+          onSkip={skip}
+          showTimer
+          timerSeconds={answerSeconds}
+          actionsDisabled={!iAnswer}
+          submitting={submitting}
           skipLabel={
-            cooldownLeft > 0
-              ? `Пропуск через ${Math.ceil(cooldownLeft / 1000)} с`
-              : adLoading
-                ? 'Реклама…'
-                : 'Пропустить 📺'
+            cooldownLeft > 0 ? `Пропуск через ${Math.ceil(cooldownLeft / 1000)} с` : adLoading ? 'Реклама…' : 'Пропустить 📺'
           }
           skipDisabled={adLoading || cooldownLeft > 0}
         />
       )}
 
+      {table.phase === 'result' && (
+        <AnswerSwipeCard
+          key={table.round}
+          name={target?.name || 'Игрок'}
+          answer={table.answer}
+          blockedAuthor={!!target && blocked.has(target.id)}
+          canReact={!!(table.answer?.id && target && target.id !== me.id)}
+          // На бота тоже можно: жалоба попадёт в журнал заготовок, а не в мут
+          canReport={!!(table.answer?.id && target && target.id !== me.id)}
+          secondsLeft={secondsLeft}
+          onReport={(answerId) =>
+            call('tasks:report', { answerId }).then((r) => {
+              flash(r.ok ? 'Жалоба отправлена, спасибо' : r.message);
+              return r;
+            })
+          }
+          onLike={(answerId) =>
+            call('tasks:like', { answerId }).then((r) => {
+              if (r.ok) goal('answer_like', { bot: !!target?.bot });
+              else if (r.error !== 'already_liked') flash(r.message);
+              return r;
+            })
+          }
+          onDislike={(answerId) =>
+            call('tasks:dislike', { answerId }).then((r) => {
+              if (r.ok) goal('answer_dislike', { bot: !!target?.bot });
+              return r;
+            })
+          }
+        />
+      )}
+
       <div className="scoreboard-mini">
-        <div className="scoreboard-mini-title">Счёт игроков</div>
-        {players.map((p, i) => {
-          const isCurrent = i === spinnerIndex;
-          return (
-            <div
-              key={p.id}
-              className={`scoreboard-row${isCurrent ? ' current' : ''}`}
-            >
-              <span className="scoreboard-name">{p.name || p.first_name}</span>
-              <span className="scoreboard-score">{p.score || 0}</span>
+        <div className="scoreboard-mini-title">Заработано за столом</div>
+        {seats.map((p, i) =>
+          p ? (
+            <div key={p.id} className={`scoreboard-row${i === table.turn ? ' current' : ''}`}>
+              <span className="scoreboard-name">
+                {p.bot ? '🤖 ' : ''}
+                {p.name}
+                {p.id === me.id ? ' (я)' : ''}
+                {blocked.has(p.id) ? ' · заблокирован' : ''}
+              </span>
+              {confirmBlock === p.id ? (
+                <span className="block-confirm">
+                  <button onClick={() => toggleBlock(p.id)}>{blocked.has(p.id) ? 'Разблокировать' : 'Заблокировать'}</button>
+                  <button onClick={() => setConfirmBlock(null)}>Отмена</button>
+                </span>
+              ) : (
+                <span className="scoreboard-score">
+                  {p.score || 0} {CURRENCY}
+                  {!p.bot && p.id !== me.id && (
+                    <button
+                      className="block-btn"
+                      title={blocked.has(p.id) ? 'Разблокировать' : 'Заблокировать'}
+                      aria-label={blocked.has(p.id) ? 'Разблокировать игрока' : 'Заблокировать игрока'}
+                      onClick={() => setConfirmBlock(p.id)}
+                    >
+                      {blocked.has(p.id) ? '↺' : '🚫'}
+                    </button>
+                  )}
+                </span>
+              )}
             </div>
-          );
-        })}
+          ) : null
+        )}
       </div>
 
+      <TableFeed
+        meId={me.id}
+        chat={chat.filter((m) => !blocked.has(m.from))}
+        history={table.history || []}
+        blocked={blocked}
+        onSend={(text) =>
+          call('tasks:chat', { text }).then((r) => {
+            if (r.ok) goal('chat_send');
+            else flash(r.message || 'Сообщение не отправлено');
+            return r;
+          })
+        }
+        onReport={(messageId) =>
+          call('tasks:report', { messageId }).then((r) => {
+            flash(r.ok ? 'Жалоба отправлена, спасибо' : r.message);
+            return r;
+          })
+        }
+        onReportAnswer={(answerId) =>
+          call('tasks:report', { answerId }).then((r) => {
+            flash(r.ok ? (r.hidden ? 'Жалоба отправлена, ответ скрыт' : 'Жалоба отправлена, спасибо') : r.message);
+            return r;
+          })
+        }
+      />
+
       <div style={{ padding: '1rem' }}>
-        <button className="btn-ghost" onClick={requestEndGame}>
-          Завершить игру
+        <button className="btn-ghost" onClick={() => setConfirmEndOpen(true)}>
+          Выйти из-за стола
         </button>
       </div>
-      {/* Spacer so the bottom VK banner ad doesn't overlap the last button */}
+      {/* Чтобы нижний рекламный баннер ВК не закрывал последнюю кнопку */}
       <div style={{ height: 72 }} />
 
       {confirmEndOpen && (
-        <div className="modal-overlay" onClick={cancelEndGame}>
+        <div className="modal-overlay" onClick={() => setConfirmEndOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div
-              style={{
-                fontSize: '1.125rem',
-                fontWeight: 700,
-                marginBottom: '0.5rem',
-                color: '#fff',
-              }}
-            >
-              Завершить игру?
+            <div style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>
+              Выйти из-за стола?
             </div>
-            <div
-              className="text-secondary"
-              style={{ marginBottom: '1.25rem' }}
-            >
-              Прогресс текущей партии не сохранится. Появится итоговая таблица результатов.
+            <div className="text-secondary" style={{ marginBottom: '1.25rem' }}>
+              Сердечки уже на вашем счету. Появится итоговая таблица этого стола.
             </div>
             <div className="btn-row">
-              <button className="btn-gradient" onClick={handleEndGame}>
-                Завершить
+              <button className="btn-gradient" onClick={endGame}>
+                Выйти
               </button>
-              <button className="btn-ghost" onClick={cancelEndGame}>
-                Продолжить игру
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {addPlayerOpen && (
-        <div className="modal-overlay" onClick={() => setAddPlayerOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-label">Имя игрока</div>
-            <input
-              className="modal-input"
-              value={newPlayerName}
-              onChange={(e) => setNewPlayerName(e.target.value.slice(0, 16))}
-              placeholder="Например, Маша"
-              maxLength={16}
-              autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') confirmAddPlayer(); if (e.key === 'Escape') setAddPlayerOpen(false); }}
-            />
-            <div className="btn-row">
-              <button className="btn-gradient" onClick={confirmAddPlayer} disabled={!newPlayerName.trim()}>
-                Добавить
-              </button>
-              <button className="btn-ghost" onClick={() => setAddPlayerOpen(false)}>
-                Отмена
+              <button className="btn-ghost" onClick={() => setConfirmEndOpen(false)}>
+                Остаться
               </button>
             </div>
           </div>

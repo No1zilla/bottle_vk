@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Panel } from '@vkontakte/vkui';
-import { getScore, getStats } from '../hooks/useStorage.js';
+import { useServer, CURRENCY } from '../lib/server.jsx';
 import { useSessionState } from '../hooks/useSessionState.js';
 
 function pluralGames(n) {
@@ -15,24 +15,19 @@ export default function Profile({ id, currentUser }) {
   // Cache the last known values in sessionStorage so they don't flash to 0
   // when the user returns to the Profile tab.
   const [score, setScoreState] = useSessionState('bottle_profile_score', 0);
-  const [stats, setStats] = useSessionState('bottle_profile_stats', { games: 0, tasks: 0 });
+  const [stats, setStats] = useSessionState('bottle_profile_stats', { games: 0, tasks: 0, likes: 0 });
+
+  const { status, wallet, call } = useServer();
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const s = await getScore();
-        if (!cancelled) setScoreState(s);
-      } catch {}
-      try {
-        const st = await getStats();
-        if (!cancelled) setStats(st);
-      } catch {}
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (status !== 'online') return;
+    call('tasks:me').then((res) => {
+      if (!res.ok) return;
+      setScoreState(res.stats.score);
+      setStats({ games: res.stats.games, tasks: res.stats.tasks, likes: res.stats.likes });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   if (!currentUser) {
     return (
@@ -71,7 +66,9 @@ export default function Profile({ id, currentUser }) {
         <h2 className="h-section" style={{ textAlign: 'center', marginBottom: 6 }}>
           {currentUser.first_name} {currentUser.last_name || ''}
         </h2>
-        <div className="text-secondary">Игрок «Бутылочки»</div>
+        <div className="text-secondary">
+          {wallet ? `На счету ${wallet.coins} ${CURRENCY} · Лайки: ❤️ ${stats.likes || 0}` : 'Игрок «Бутылочки»'}
+        </div>
       </div>
 
       <div className="stats-row">
@@ -85,7 +82,7 @@ export default function Profile({ id, currentUser }) {
         </div>
         <div className="stat-card">
           <div className="stat-value">{score}</div>
-          <div className="stat-label">Очков</div>
+          <div className="stat-label">{CURRENCY} за ответы</div>
         </div>
       </div>
 

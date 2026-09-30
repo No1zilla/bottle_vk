@@ -1,62 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Panel } from '@vkontakte/vkui';
-import { useVKFriends } from '../hooks/useVKFriends.js';
-import { getScore } from '../hooks/useStorage.js';
+import { useServer, CURRENCY } from '../lib/server.jsx';
 
 // Plain digits instead of emoji medals — colored backgrounds (.gold/.silver/.bronze)
 // convey the rank reliably even on systems without an emoji font (Windows w/o Segoe UI Emoji).
 const RANK = ['1', '2', '3'];
 
-// Фейковые игроки для заполнения рейтинга — создают эффект живого сообщества
-const FAKE_PLAYERS = [
-  { id: 'fake_1', first_name: 'Александр', last_name: 'Морозов', score: 340, seed: 'alex-m' },
-  { id: 'fake_2', first_name: 'Анастасия', last_name: 'Волкова', score: 290, seed: 'nastya-v' },
-  { id: 'fake_3', first_name: 'Дмитрий', last_name: 'Соколов', score: 250, seed: 'dima-s' },
-  { id: 'fake_4', first_name: 'Екатерина', last_name: 'Новикова', score: 210, seed: 'kate-n' },
-  { id: 'fake_5', first_name: 'Михаил', last_name: 'Козлов', score: 180, seed: 'misha-k' },
-  { id: 'fake_6', first_name: 'Ольга', last_name: 'Лебедева', score: 150, seed: 'olga-l' },
-  { id: 'fake_7', first_name: 'Никита', last_name: 'Смирнов', score: 120, seed: 'nikita-s' },
-  { id: 'fake_8', first_name: 'Мария', last_name: 'Кузнецова', score: 90, seed: 'masha-k' },
-  { id: 'fake_9', first_name: 'Артём', last_name: 'Васильев', score: 60, seed: 'artem-v' },
-  { id: 'fake_10', first_name: 'Юлия', last_name: 'Семёнова', score: 30, seed: 'julia-s' },
-].map((p, i) => {
-  const styles = ['personas', 'lorelei', 'notionists', 'fun-emoji', 'adventurer', 'big-smile', 'micah', 'avataaars', 'croodles', 'pixel-art'];
-  return {
-    ...p,
-    photo_100: `https://api.dicebear.com/9.x/${styles[i % styles.length]}/svg?seed=${p.seed}`,
-    isFake: true,
-  };
-});
-
-export default function Leaderboard({ id, currentUser }) {
-  const { friends, load } = useVKFriends();
-  const [myScore, setMyScore] = useState(0);
+// Общий рейтинг всех игроков: сердечки, заработанные за ответы, плюс лайки ответов (трата сердечек место не меняет).
+export default function Leaderboard({ id }) {
+  const { status, me, call } = useServer();
+  const [data, setData] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      const s = await getScore();
-      setMyScore(s);
-    })();
-  }, []);
+    if (status !== 'online') return;
+    call('tasks:leaderboard').then((res) => res.ok && setData(res));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
-  const myEntry = currentUser
-    ? {
-        id: currentUser.id,
-        first_name: currentUser.first_name,
-        last_name: currentUser.last_name,
-        photo_100: currentUser.photo_100,
-        score: myScore,
-        isMe: true,
-      }
-    : null;
-
-  const friendsList = [...friends];
-  if (myEntry && !friendsList.some((f) => f.id === myEntry.id)) {
-    friendsList.push(myEntry);
-  }
-  const combined = [...friendsList, ...FAKE_PLAYERS];
-  combined.sort((a, b) => (b.score || 0) - (a.score || 0));
-  const friendsList2 = combined;
+  const top = (data?.top || []).map((p) => ({ ...p, isMe: p.id === me?.id }));
+  // Себя показываем внизу, если не попали в топ
+  const mine = data?.me;
+  const meOutside = me && mine?.rating > 0 && !top.some((p) => p.isMe);
 
   return (
     <Panel id={id}>
@@ -65,44 +29,39 @@ export default function Leaderboard({ id, currentUser }) {
           <span className="gradient-text">Рейтинг</span>
         </h1>
         <div className="text-secondary" style={{ marginTop: 6 }}>
-          Сравни свои очки с друзьями
+          Сердечки за ответы + лайки от других игроков
         </div>
       </div>
 
-      <div style={{ padding: '0 1rem 0.5rem' }}>
-        <button className="btn-ghost" onClick={load}>
-          Загрузить друзей из ВК
-        </button>
-      </div>
+      {!data && <div className="empty-state">Загрузка…</div>}
+      {data && top.length === 0 && <div className="empty-state">Пока никто не заработал сердечек — будьте первым!</div>}
 
-      {friendsList2.length === 0 && <div className="empty-state">Пока пусто</div>}
-
-      {friendsList2.map((p, i) => {
-        const photo = p.photo_100 || '';
-        const initials = (p.first_name || '?')[0].toUpperCase();
-        const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-        return (
-          <div
-            key={p.id}
-            className={`leader-row${p.isMe ? ' is-me' : ''}`}
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className={`leader-rank ${rankClass}`}>
-              {i < 3 ? RANK[i] : i + 1}
-            </div>
-            <div className="leader-avatar">
-              {photo ? <img src={photo} alt="" /> : initials}
-            </div>
-            <div className="leader-name">
-              {p.first_name} {p.last_name || ''}
-              {p.isMe && <small>Это вы</small>}
-            </div>
-            <div className="leader-score">{p.score || 0}</div>
-          </div>
-        );
-      })}
+      {top.map((p, i) => (
+        <LeaderRow key={p.id} p={p} rank={i + 1} delay={i * 50} />
+      ))}
+      {meOutside && (
+        <LeaderRow p={{ id: me.id, name: me.name, photo: me.photo, ...mine, isMe: true }} rank={mine.rank} delay={0} />
+      )}
 
       <div style={{ height: 32 }} />
     </Panel>
+  );
+}
+
+function LeaderRow({ p, rank, delay }) {
+  const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+  return (
+    <div className={`leader-row${p.isMe ? ' is-me' : ''}`} style={{ animationDelay: `${delay}ms` }}>
+      <div className={`leader-rank ${rankClass}`}>{rank <= 3 ? RANK[rank - 1] : rank}</div>
+      <div className="leader-avatar">{p.photo ? <img src={p.photo} alt="" /> : (p.name || '?')[0].toUpperCase()}</div>
+      <div className="leader-name">
+        {p.name}
+        <small>
+          {p.score || 0} {CURRENCY} + ❤️ {p.likes || 0}
+          {p.isMe ? ' · это вы' : ''}
+        </small>
+      </div>
+      <div className="leader-score">{p.rating || 0}</div>
+    </div>
   );
 }

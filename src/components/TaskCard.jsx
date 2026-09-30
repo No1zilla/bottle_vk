@@ -17,6 +17,7 @@ export default function TaskCard({
   timerSeconds = 10,
   onTimeout = null,
   actionsDisabled = false,
+  submitting = false, // сервер проверяет ответ (ИИ-модерация) — ждём
 }) {
   const [timeLeft, setTimeLeft] = useState(timerSeconds);
   const [answer, setAnswer] = useState('');
@@ -42,13 +43,14 @@ export default function TaskCard({
   if (!task) return null;
   const toName = toPlayer?.name || toPlayer?.first_name || '?';
   const timerFrac = showTimer ? timeLeft / timerSeconds : 1;
-  const timerColor = timeLeft <= 3 ? '#f44336' : timeLeft <= 6 ? '#ff9800' : '#4caf50';
+  // Цвет по доле оставшегося времени: зелёный → после половины оранжевый → последняя четверть красная
+  const timerColor = timerFrac <= 0.25 ? '#f44336' : timerFrac <= 0.5 ? '#ff9800' : '#4caf50';
 
   const BAD_WORDS = ['блять','блядь','сука','пизд','хуй','ебат','ебать','еблан','залупа','мудак','шлюх','говно','пидор','гандон','уебок','уёбок'];
   const isBad = BAD_WORDS.some((w) => answer.toLowerCase().replace(/ё/g,'е').includes(w.replace(/ё/g,'е')));
 
   function handleSubmit() {
-    if (!answer.trim() || isBad) return;
+    if (!answer.trim() || isBad || submitting) return;
     onComplete(answer.trim());
   }
 
@@ -58,7 +60,7 @@ export default function TaskCard({
         <b>{toName}</b> отвечает
       </div>
       <span className={`task-badge ${task.level}`}>
-        {LEVEL_LABEL[task.level]} · +{task.points}
+        {LEVEL_LABEL[task.level]} · +{task.reward} ❤
       </span>
       {showTimer && (
         <div className="task-timer">
@@ -92,8 +94,8 @@ export default function TaskCard({
             </div>
           )}
           <div className="btn-row">
-            <button className="btn-success" onClick={handleSubmit} disabled={!answer.trim() || isBad}>
-              Отправить ответ
+            <button className="btn-success" onClick={handleSubmit} disabled={!answer.trim() || isBad || submitting}>
+              {submitting ? 'Проверяем…' : 'Отправить ответ'}
             </button>
             <button className="btn-ghost" onClick={onSkip} disabled={skipDisabled}>
               {skipLabel}

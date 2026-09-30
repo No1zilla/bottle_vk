@@ -12,7 +12,7 @@ const CAP_LIGHT = '#FFB300';
 const LABEL_BG = '#fff';
 
 const BottleSVG = forwardRef(function BottleSVG(
-  { width = 100, height = 200, className = '', style },
+  { width = 100, height = 200, className = '', style, ...rest },
   ref
 ) {
   return (
@@ -20,6 +20,7 @@ const BottleSVG = forwardRef(function BottleSVG(
       ref={ref}
       className={className}
       style={style}
+      {...rest}
       width={width}
       height={height}
       viewBox="0 0 100 200"

@@ -236,7 +236,7 @@ body {
   position: relative;
   width: 260px;
   height: 260px;
-  margin: 0.5rem auto 1.5rem;
+  margin: 0.5rem auto 2.25rem; /* снизу место под подписи нижних мест */
   box-sizing: content-box;
 }
 .arena-glow {
@@ -834,4 +834,161 @@ body.modal-open {
   color: #fff;
   line-height: 1.5;
   margin-bottom: 1.25rem;
+}
+
+/* Ответ карточкой: свайп вправо — лайк, влево — дальше */
+.swipe-wrap { margin: 0 1rem 1rem; }
+.swipe-card {
+  position: relative;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 1.25rem 2.75rem 1.25rem 1.25rem;
+  user-select: none;
+  cursor: grab;
+  transition: transform 0.3s ease;
+  animation: taskIn 0.4s ease both;
+}
+.swipe-card.dragging { transition: none; cursor: grabbing; }
+.swipe-stamp {
+  position: absolute;
+  top: 0.75rem;
+  font-size: 2rem;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.swipe-stamp.like { left: 1rem; }
+.swipe-stamp.dislike { right: 3rem; }
+.swipe-report {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.swipe-report.reported, .swipe-report:disabled { color: #f44336; cursor: default; }
+.swipe-buttons { display: flex; justify-content: center; gap: 2rem; margin-top: 0.75rem; }
+.swipe-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  font-size: 1.5rem;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+.swipe-btn.dislike { border-color: rgba(244, 67, 54, 0.5); }
+.swipe-btn.like { border-color: rgba(74, 222, 128, 0.5); }
+.swipe-done {
+  margin: 0 1rem 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+}
+.swipe-btn.dislike { color: #f44336; font-weight: 800; }
+.swipe-stamp.dislike { color: #f44336; font-weight: 800; }
+
+/* Своя оценка на карточке: счётчик подсвечивается, пока сервер не прислал новое число */
+.swipe-counters { transition: color 0.3s; }
+.swipe-counters.voted-like { color: #ff4d6d; font-weight: 700; }
+.swipe-counters.voted-dislike { color: #f44336; font-weight: 700; }
+
+/* Под столом: чат и последние ответы */
+.feed {
+  margin: 0 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.feed-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.feed-tabs button {
+  flex: 1;
+  padding: 0.7rem 0.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.feed-tabs button.active { color: #fff; border-bottom-color: var(--accent-from); }
+.feed-empty { color: var(--text-secondary); text-align: center; padding: 1.25rem 0.5rem; font-size: 0.9rem; }
+.feed-chat { height: 200px; overflow-y: auto; padding: 0.5rem 0.75rem; }
+.feed-msg { position: relative; padding: 0.3rem 1.75rem 0.3rem 0; font-size: 0.92rem; line-height: 1.35; word-break: break-word; }
+.feed-msg-name { color: #7B9CFF; font-weight: 700; margin-right: 0.4rem; }
+.feed-msg.mine .feed-msg-name { color: #4ade80; }
+.feed-msg-text { color: #fff; }
+.feed-report {
+  position: absolute; right: 0; top: 0.15rem;
+  width: 1.5rem; height: 1.5rem;
+  background: none; border: none;
+  color: rgba(255,255,255,0.3); cursor: pointer; font-size: 0.85rem;
+}
+.feed-report.reported, .feed-report:disabled { color: #f44336; cursor: default; }
+.feed-input { display: flex; gap: 0.5rem; padding: 0.5rem; border-top: 1px solid var(--border); }
+.feed-input input {
+  flex: 1; min-width: 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  color: #fff; font-size: 16px; /* 16px — иначе iOS зумит поле */
+}
+.feed-input .btn-gradient { width: auto; padding: 0 1rem; }
+.feed-history { max-height: 320px; overflow-y: auto; padding: 0.5rem 0.75rem; }
+.feed-card { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+.feed-card:last-child { border-bottom: none; }
+.feed-card-head { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; }
+.feed-card-task { font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0.2rem 0; }
+.feed-card-answer { font-size: 1rem; color: #fff; font-weight: 600; }
+
+/* Блокировка игрока в строке счёта */
+.block-btn {
+  margin-left: 0.5rem;
+  background: none; border: none;
+  font-size: 0.85rem; opacity: 0.45;
+  cursor: pointer; padding: 0 0.25rem;
+}
+.block-btn:hover { opacity: 0.9; }
+.block-confirm { display: flex; gap: 0.4rem; }
+.block-confirm button {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.5rem;
+  color: #fff; font-size: 0.8rem;
+  padding: 0.25rem 0.5rem; cursor: pointer;
+}
+.block-confirm button:first-child { border-color: rgba(244, 67, 54, 0.6); color: #ff8a80; }
+.feed-card { position: relative; padding-right: 1.75rem; }
+
+/* Мой ход: бутылку можно крутить нажатием — она мягко «дышит» свечением (transform занят поворотом) */
+.bottle-arena svg.bottle-svg.clickable {
+  cursor: pointer;
+  animation: bottle-ready 1.6s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+@keyframes bottle-ready {
+  0%, 100% { filter: drop-shadow(0 8px 24px rgba(0, 119, 255, 0.5)); }
+  50% { filter: drop-shadow(0 0 22px rgba(123, 97, 255, 0.95)) brightness(1.12); }
+}
+
+/* Свободное место на круге — «Позвать друга», как в хабе */
+button.player-dot-empty { padding: 0; font-family: inherit; line-height: 1; }
+.player-name-label.invite-label {
+  white-space: normal;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.45);
 }
