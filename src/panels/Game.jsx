@@ -244,7 +244,7 @@ export default function Game({ id, onEndGame }) {
         <TaskCard
           key={table.round}
           task={table.task}
-          toPlayer={target}
+          toPlayer={target?.bot ? { ...target, name: `🤖 ${target.name}` } : target}
           onComplete={answer}
           onSkip={skip}
           showTimer
@@ -261,7 +261,7 @@ export default function Game({ id, onEndGame }) {
       {table.phase === 'result' && (
         <AnswerSwipeCard
           key={table.round}
-          name={target?.name || 'Игрок'}
+          name={`${target?.bot ? '🤖 ' : ''}${target?.name || 'Игрок'}`}
           answer={table.answer}
           blockedAuthor={!!target && blocked.has(target.id)}
           canReact={!!(table.answer?.id && target && target.id !== me.id)}

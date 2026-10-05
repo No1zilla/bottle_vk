@@ -83,8 +83,7 @@ export default function BottleSpinner({
         const isTarget = !isSpinning && playerIndex === targetIndex;
         const isSpinnerDot = playerIndex === spinnerIndex;
         const photo = p.photo_100 || p.photo || '';
-        const initials = p.bot ? '🤖' : (p.name || '?').slice(0, 1).toUpperCase();
-        const isEmoji = !!p.bot;
+        const initials = (p.name || '?').slice(0, 1).toUpperCase();
         const className = [
           'player-dot',
           isTarget ? 'target' : '',
@@ -92,11 +91,17 @@ export default function BottleSpinner({
         ]
           .filter(Boolean)
           .join(' ');
-        const name = p.bot ? `🤖 ${p.name}` : p.name || '';
+        const name = p.name || '';
         return (
           <React.Fragment key={p.id}>
             <div className={className} style={dotStyle} title={name}>
-              {photo ? <img src={photo} alt="" /> : <span style={isEmoji ? { fontSize: dotSize * 0.55 } : {}}>{initials}</span>}
+              {photo ? <img src={photo} alt="" /> : <span>{initials}</span>}
+              {/* Бот с именем и аватаркой, но всегда помечен — за столом живые люди */}
+              {p.bot && (
+                <span className="bot-badge" title="Бот" aria-label="бот">
+                  🤖
+                </span>
+              )}
             </div>
             <div
               className="player-name-label"
