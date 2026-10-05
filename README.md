@@ -1,3 +1,7 @@
+> **С октября 2026 клиент этого приложения собирается в `vk-games-hub`** (задания + поцелуи в одном приложении):
+> `vk-games-hub/deploy/publish-pages.sh` кладёт готовые файлы в `site/`, GitHub Pages выкладывает их при push в `main`.
+> Исходники ниже (`src/`) — прежний клиент bottle-app, остаются для истории и отката (метка `bottle-app-client-last`).
+
 # Бутылочка — VK Mini App
 
 Весёлая игра в бутылочку на React + Vite + VKUI. Хранение данных только через VKWebAppStorage, без бэкенда.
