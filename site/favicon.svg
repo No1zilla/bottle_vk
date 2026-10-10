@@ -1,15 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 576" width="576" height="576">
+  <!-- Иконка приложения: зелёная бутылочка с сердечком на этикетке, тёмный фон с синим свечением -->
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+    <radialGradient id="glow" cx="50%" cy="52%" r="55%">
+      <stop offset="0%" stop-color="#2a63d6" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#16398a" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#1B5E20"/>
-      <stop offset="50%" stop-color="#66BB6A"/>
-      <stop offset="100%" stop-color="#1B5E20"/>
+      <stop offset="35%" stop-color="#4CAF50"/>
+      <stop offset="60%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#174d1b"/>
     </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFC107"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5a7a"/>
+      <stop offset="100%" stop-color="#d81b3c"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
   </defs>
-  <rect x="42" y="2" width="16" height="14" rx="3" fill="#F57F17"/>
-  <rect x="44" y="16" width="12" height="20" rx="2" fill="url(#g)"/>
-  <path d="M44 36 Q28 50 26 70 L26 92 Q26 98 34 98 L66 98 Q74 98 74 92 L74 70 Q72 50 56 36 Z" fill="url(#g)"/>
-  <rect x="36" y="58" width="28" height="32" rx="3" fill="#fff"/>
-  <circle cx="50" cy="74" r="8" fill="none" stroke="#0077FF" stroke-width="2"/>
-  <circle cx="50" cy="74" r="3" fill="#7B61FF"/>
+
+  <rect width="576" height="576" fill="#0d1117"/>
+  <rect width="576" height="576" fill="url(#glow)"/>
+
+  <!-- Бутылка в координатах 0..100 × 0..200, центр (50,100); масштаб 2.45, наклон 18° -->
+  <g transform="translate(288 296) rotate(18) scale(2.45) translate(-50 -100)" filter="url(#shadow)">
+    <!-- пробка -->
+    <rect x="40" y="6" width="20" height="16" rx="3" fill="url(#cap)"/>
+    <rect x="41" y="7" width="18" height="4" rx="2" fill="#FFE082" opacity="0.8"/>
+    <!-- горлышко -->
+    <rect x="42" y="21" width="16" height="41" rx="2" fill="url(#glass)"/>
+    <rect x="44.5" y="24" width="3" height="36" rx="1.5" fill="#fff" opacity="0.35"/>
+    <!-- корпус -->
+    <path d="M42 60 Q26 80 22 100 L22 180 Q22 194 36 194 L64 194 Q78 194 78 180 L78 100 Q74 80 58 60 Z" fill="url(#glass)"/>
+    <path d="M29 102 Q27 112 27 132 L27 178 Q27 186 33 188" stroke="#81C784" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.9"/>
+    <path d="M71 102 Q73 112 73 132 L73 178 Q73 186 67 188" stroke="#123f16" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- этикетка -->
+    <rect x="29" y="116" width="42" height="54" rx="4" fill="#fbfbf7"/>
+    <rect x="29" y="116" width="42" height="54" rx="4" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="1"/>
+    <!-- сердечко по центру этикетки -->
+    <path d="M50 155.5 C38 147 33.5 141 33.5 135.2 C33.5 130.5 37 127 41.4 127 C44.7 127 47.6 128.9 50 132.2 C52.4 128.9 55.3 127 58.6 127 C63 127 66.5 130.5 66.5 135.2 C66.5 141 62 147 50 155.5 Z" fill="url(#heart)"/>
+    <path d="M40.5 131.5 C38.3 132.3 37.2 134.2 37.4 136.4" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.75"/>
+  </g>
 </svg>
