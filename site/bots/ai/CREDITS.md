@@ -1,7 +1,7 @@
 # AI-generated test avatars
 
 The realistic avatar portraits in this directory were generated with
-OpenAI's image-generation tools on 2026-10-19 for use as synthetic
+OpenAI's image-generation tools on 2026-10-19 and 2026-10-29 (second batch n-w-*/n-m-*, 15 women and 14 men, resized to 256 px) for use as synthetic
 test-account profile images.
 
 ## Source
